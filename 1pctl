@@ -1,0 +1,92 @@
+#!/bin/bash
+action=$1
+target=$2
+args=$@
+
+BASE_DIR=/opt
+
+function usage() {
+    echo "1Panel 控制脚本"
+    echo
+    echo "Usage: "
+    echo "  ./1pctl [COMMAND] [ARGS...]"
+    echo "  ./1pctl --help"
+    echo
+    echo "Commands: "
+    echo "  status                   查看 1Panel 服务运行状态"
+    echo "  start                    启动 1Panel 服务"
+    echo "  stop                     停止 1Panel 服务"
+    echo "  restart                  重启 1Panel 服务"
+    echo "  uninstall                卸载 1Panel 服务"
+    echo "  get-login-info           获取 1Panel 登录信息"
+    echo "  update-panel-username    修改 1Panel 用户名"
+    echo "  update-panel-password    修改 1Panel 密码"
+    echo "  version                  查看 1Panel 版本信息"
+}
+function status() {
+    echo
+    systemctl status 1panel.service
+}
+function start() {
+   echo
+    systemctl start 1panel.service
+}
+function stop() {
+    echo
+    systemctl stop 1panel.service
+}
+function restart() {
+    echo
+    systemctl restart 1panel.service
+}
+function uninstall() {
+    echo
+    read -p "卸载将会完全清除 1Panel 服务和数据目录，是否继续 [y/n] : " yn
+    if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
+        echo -e "停止 1Panel 服务进程"
+        systemctl stop 1panel.service
+    else
+        exit 0
+    fi
+    echo -e "删除 1Panel 服务和数据目录"
+    rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service
+    echo -e "重新加载服务配置文件"
+    systemctl daemon-reload
+}
+function version() {
+    echo
+    1panel_version=`1panel version`
+    echo $1panel_version
+}
+
+function main() {
+    case "${action}" in
+        status)
+            status
+            ;;
+        start)
+            start
+            ;;
+        stop)
+            stop
+            ;;
+        restart)
+            restart
+            ;;
+        uninstall)
+            uninstall
+            ;;
+        version)
+            version
+            ;;
+        help)
+            usage
+            ;;
+        --help)
+            usage
+            ;;
+        *)
+        echo "不支持的参数，请使用 help 或 --help 参数获取帮助"
+    esac
+}
+main
