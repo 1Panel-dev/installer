@@ -24,13 +24,13 @@ echo -e "======================= 开始安装 =======================" 2>&1 | te
 
 function Prepare_System(){
     is64bit=`getconf LONG_BIT`
-    if [ $is64bit != '64' ]; then
-        echo "错误：32位系统不支持安装 1Panel Linux 面板，请更换64位系统安装。"
+    if [[ $is64bit != "64" ]]; then
+        echo "错误：32 位系统不支持安装 1Panel Linux 面板，请更换64位系统安装。"
         exit 1
     fi
 
     isInstalled=`systemctl status 1panel 2>&1 | grep Active`
-    if [ $isInstalled != "" ]; then
+    if [[ $isInstalled != "" ]]; then
         echo "错误：1Panel Linux 面板已安装，请勿重复安装。"
         exit 1
     fi
@@ -38,9 +38,9 @@ function Prepare_System(){
 
 function Set_Dir(){
     if read -t 120 -p "设置 1Panel 安装目录,默认 /opt: " PANEL_BASE_DIR;then
-        if [ "$PANEL_BASE_DIR" != "" ];then
+        if [[ "$PANEL_BASE_DIR" != "" ]];then
             echo "你选择的安装路径为 $PANEL_BASE_DIR"
-            if [ ! -d $PANEL_BASE_DIR ];then
+            if [[ ! -d $PANEL_BASE_DIR ]];then
                 mkdir -p $PANEL_BASE_DIR
             fi
         else
@@ -60,18 +60,24 @@ function Install_Docker(){
         service docker start 2>&1 | tee -a ${CURRENT_DIR}/install.log
     else
         log "... 在线安装 docker"
+
         curl -fsSL https://get.docker.com -o get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        if [[ ! -f get-docker.sh ]];then
+            echo "get-docker.sh 脚本下载失败，请稍候重试。"
+            exit 1
+        fi
         sudo sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        
         log "... 启动 docker"
         systemctl enable docker; systemctl daemon-reload; service docker start 2>&1 | tee -a ${CURRENT_DIR}/install.log
 
         docker_config_folder="/etc/docker"
-        if [ ! -d "$docker_config_folder" ];then
+        if [[ ! -d "$docker_config_folder" ]];then
             mkdir -p "$docker_config_folder"
         fi
 
         docker version >/dev/null
-        if [ $? -ne 0 ]; then
+        if [[ $? -ne 0 ]]; then
             log "docker 安装失败"
             exit 1
         else
@@ -82,14 +88,19 @@ function Install_Docker(){
 
 function Install_Compose(){
     docker-compose version >/dev/null
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         log "... 在线安装 docker-compose"
+        
         curl -L https://get.daocloud.io/docker/compose/releases/download/1.29.2/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        if [[ ! -f /usr/local/bin/docker-compose ]];then
+            echo "docker-compose 下载失败，请稍候重试。"
+            exit 1
+        fi
         chmod +x /usr/local/bin/docker-compose
         ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 
         docker-compose version >/dev/null
-        if [ $? -ne 0 ]; then
+        if [[ $? -ne 0 ]]; then
             log "docker-compose 安装失败"
             exit 1
         else
@@ -122,13 +133,13 @@ function Init_Panel(){
     cd ${CURRENT_DIR}
 
     cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel
-    if [ ! -f /usr/bin/1panel ]; then
+    if [[ ! -f /usr/bin/1panel ]]; then
         ln -s /usr/local/bin/1panel /usr/bin/1panel 2>/dev/null
     fi
 
     sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" ./1pctl
     cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
-    if [ ! -f /usr/bin/1pctl ]; then
+    if [[ ! -f /usr/bin/1pctl ]]; then
         ln -s /usr/local/bin/1pctl /usr/bin/1pctl 2>/dev/null
     fi
 
@@ -138,7 +149,6 @@ function Init_Panel(){
 
     log "启动服务"
     1pctl start | tee -a ${CURRENT_DIR}/install.log
-    1pctl status 2>&1 | tee -a ${CURRENT_DIR}/install.log
 
     for b in {1..30}
     do

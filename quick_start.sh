@@ -11,54 +11,7 @@ else
     exit 1
 fi
 
-git_urls=('gitee.com' 'github.com')
-if [[ -x "$(command -v python)" ]];then
-    py_cmd='python'
-elif [[ -x "$(command -v python3)" ]];then
-    py_cmd='python3'
-else
-    git_urls=('github.com')
-fi
-
-for git_url in ${git_urls[*]}
-do
-	success="true"
-	for i in {1..3}
-	do
-		echo -ne "检测 ${git_url} ... ${i} "
-	    curl -m 5 -kIs https://${git_url} >/dev/null
-		if [ $? != 0 ];then
-			echo "failed"
-			success="false"
-			break
-		else
-			echo "ok"
-		fi
-	done
-	if [[ ${success} == "true" ]];then
-		server_url=${git_url}
-		break
-	fi
-done
-
-if [[ "x${server_url}" == "x" ]];then
-    echo "没有找到稳定的下载服务器，请稍候重试"
-    exit 1
-fi
-
-echo "使用下载服务器 ${server_url}"
-
-if [[ "${server_url}" == "gitee.com" ]];then
-    owner='wanghe-fit2cloud'
-    repo='1Panel'
-    gitee_release_content=$(curl -s https://gitee.com/api/v5/repos/${owner}/${repo}/releases/latest)
-    export LC_ALL="en_US.utf8"
-	VERSION=$($py_cmd -c "import json; obj=json.loads('$gitee_release_content', strict=False); print(obj['tag_name']);")
-else
-	owner='wanghe-fit2cloud'
-	repo='1Panel'
-	VERSION=$(curl -s https://api.github.com/repos/${owner}/${repo}/releases/latest | grep -e "\"tag_name\"" | sed -r 's/.*: "(.*)",/\1/')
-fi
+VERSION=$(curl -s http://1panel.oss-cn-hangzhou.aliyuncs.com/package/${INSTALL_MODE}/latest)
 
 if [[ "x${VERSION}" == "x" ]];then
     echo "获取最新版本失败，请稍候重试"
@@ -68,11 +21,11 @@ fi
 echo "开始下载 1Panel ${VERSION} 版本在线安装包"
 
 package_file_name="1panel-${VERSION}-linux-${architecture}.tar.gz"
-package_download_url="https://${server_url}/${owner}/${repo}/releases/download/${VERSION}/${package_file_name}"
+package_download_url="http://1panel.oss-cn-hangzhou.aliyuncs.com/package/${INSTALL_MODE}/${VERSION}/release/${package_file_name}"
 
 echo "安装包下载地址： ${package_download_url}"
 
-curl -LOk -m 60 -o ${package_file_name} ${package_download_url}
+curl -LOk -o ${package_file_name} ${package_download_url}
 if [ ! -f ${package_file_name} ];then
 	echo "下载安装包失败，请稍候重试。"
 	exit 1
