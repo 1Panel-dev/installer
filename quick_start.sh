@@ -40,3 +40,5 @@ fi
 cd 1panel-${VERSION}-linux-${architecture}
 
 /bin/bash install.sh
+
+curl -sfL https://resource.fit2cloud.com/installation-log.sh | sh -s 1p install ${VERSION}
