@@ -11,7 +11,7 @@ else
     exit 1
 fi
 
-VERSION=$(curl -s http://1panel.oss-cn-hangzhou.aliyuncs.com/package/${INSTALL_MODE}/latest)
+VERSION=$(curl -s https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/latest)
 
 if [[ "x${VERSION}" == "x" ]];then
     echo "获取最新版本失败，请稍候重试"
@@ -21,7 +21,7 @@ fi
 echo "开始下载 1Panel ${VERSION} 版本在线安装包"
 
 package_file_name="1panel-${VERSION}-linux-${architecture}.tar.gz"
-package_download_url="http://1panel.oss-cn-hangzhou.aliyuncs.com/package/${INSTALL_MODE}/${VERSION}/release/${package_file_name}"
+package_download_url="https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/${VERSION}/release/${package_file_name}"
 
 echo "安装包下载地址： ${package_download_url}"
 
