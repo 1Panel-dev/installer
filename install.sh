@@ -25,22 +25,22 @@ log "======================= 开始安装 ======================="
 function Prepare_System(){
     is64bit=`getconf LONG_BIT`
     if [[ $is64bit != "64" ]]; then
-        log "错误：32 位系统不支持安装 1Panel Linux 面板，请更换64位系统安装。"
+        log "不支持 32 位系统安装 1Panel Linux 服务器运维管理面板，请更换 64 位系统安装"
         exit 1
     fi
 
     isInstalled=`systemctl status 1panel 2>&1 | grep Active`
     if [[ $isInstalled != "" ]]; then
-        log "错误：1Panel Linux 面板已安装，请勿重复安装。"
+        log "1Panel Linux 服务器运维管理面板已安装，请勿重复安装"
         exit 1
     fi
 }
 
 function Set_Dir(){
-    if read -t 120 -p "设置 1Panel 安装目录,默认 /opt: " PANEL_BASE_DIR;then
+    if read -t 120 -p "设置 1Panel 安装目录，默认 /opt: " PANEL_BASE_DIR;then
         if [[ "$PANEL_BASE_DIR" != "" ]];then
             if [[ "$PANEL_BASE_DIR" != /* ]];then
-                log "错误：请输入目录的完整路径"
+                log "请输入目录的完整路径"
                 Set_Dir
             fi
 
@@ -68,7 +68,7 @@ function Install_Docker(){
 
         curl -fsSL https://resource.fit2cloud.com/get-docker-linux.sh -o get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
         if [[ ! -f get-docker.sh ]];then
-            log "docker 在线安装脚本下载失败，请稍候重试。"
+            log "docker 在线安装脚本下载失败，请稍候重试"
             exit 1
         fi
         sudo sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
@@ -96,9 +96,9 @@ function Install_Compose(){
     if [[ $? -ne 0 ]]; then
         log "... 在线安装 docker-compose"
         
-        curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s | tr A-Z a-z)-`uname -m` > /usr/local/bin/docker-compose 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.16.0/docker-compose-$(uname -s | tr A-Z a-z)-`uname -m` -o /usr/local/bin/docker-compose 2>&1 | tee -a ${CURRENT_DIR}/install.log
         if [[ ! -f /usr/local/bin/docker-compose ]];then
-            log "docker-compose 下载失败，请稍候重试。"
+            log "docker-compose 下载失败，请稍候重试"
             exit 1
         fi
         chmod +x /usr/local/bin/docker-compose
@@ -112,7 +112,18 @@ function Install_Compose(){
             log "docker-compose 安装成功"
         fi
     else
-        log "检测到 Docker Compose 已安装，跳过安装步骤"
+        compose_v=`docker-compose -v`
+        if [[ $compose_v =~ 'docker-compose' ]];then
+            read -p "检测到已安装 Docker Compose 版本较低（需大于等于 v2.0.0 版本），是否升级 [y/n] : " UPGRADE_DOCKER_COMPOSE
+            if [[ "$UPGRADE_DOCKER_COMPOSE" == "Y" ]] || [[ "$UPGRADE_DOCKER_COMPOSE" == "y" ]]; then
+                rm -rf /usr/local/bin/docker-compose /usr/bin/docker-compose
+                Install_Compose
+            else
+                log "Docker Compose 版本为 $compose_v，可能会影响应用商店的正常使用"
+            fi
+        else
+            log "检测到 Docker Compose 已安装，跳过安装步骤"
+        fi
     fi
 }
 
@@ -171,7 +182,7 @@ function Init_Panel(){
 
 function Show_Result(){
     log ""
-    log "=================感谢您的耐心等待,安装已经完成=================="
+    log "=================感谢您的耐心等待，安装已经完成=================="
     log ""
     log "请用浏览器访问面板:"
     log "http://\$LOCAL_IP:9999"

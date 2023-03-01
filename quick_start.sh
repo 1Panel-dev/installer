@@ -11,6 +11,16 @@ else
     exit 1
 fi
 
+if [[ ! ${INSTALL_MODE} ]];then
+	INSTALL_MODE="stable"
+else
+    if [[ ${INSTALL_MODE} != "dev" && ${INSTALL_MODE} != "stable" ]];then
+        echo "请输入正确的安装模式（dev or stable）"
+        exit 1
+    fi
+fi
+echo ${INSTALL_MODE}
+
 VERSION=$(curl -s https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/latest)
 
 if [[ "x${VERSION}" == "x" ]];then
@@ -26,6 +36,7 @@ package_download_url="https://resource.fit2cloud.com/1panel/package/${INSTALL_MO
 echo "安装包下载地址： ${package_download_url}"
 
 curl -LOk -o ${package_file_name} ${package_download_url}
+curl -sfL https://resource.fit2cloud.com/installation-log.sh | sh -s 1p install ${VERSION}
 if [ ! -f ${package_file_name} ];then
 	echo "下载安装包失败，请稍候重试。"
 	exit 1
@@ -40,5 +51,3 @@ fi
 cd 1panel-${VERSION}-linux-${architecture}
 
 /bin/bash install.sh
-
-curl -sfL https://resource.fit2cloud.com/installation-log.sh | sh -s 1p install ${VERSION}
