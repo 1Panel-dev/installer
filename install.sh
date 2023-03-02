@@ -130,9 +130,20 @@ function Install_Compose(){
 function Set_Firewall(){
     if which firewall-cmd >/dev/null; then
         if systemctl is-active firewalld &>/dev/null ;then
-            log "防火墙端口开放"
+            log "防火墙开放 9999 端口"
             firewall-cmd --zone=public --add-port=9999/tcp --permanent
             firewall-cmd --reload
+        else
+            log "防火墙未开启，忽略端口开放"
+        fi
+    fi
+
+    if which ufw >/dev/null; then
+        is_active=`sudo ufw status | head -n 1 | awk '{print $2}'`
+        if [[ $is_active == "active" ]];then
+            log "防火墙开放 9999 端口"
+            sudo ufw allow 9999/tcp
+            sudo ufw reload
         else
             log "防火墙未开启，忽略端口开放"
         fi

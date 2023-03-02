@@ -19,7 +19,6 @@ else
         exit 1
     fi
 fi
-echo ${INSTALL_MODE}
 
 VERSION=$(curl -s https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/latest)
 
