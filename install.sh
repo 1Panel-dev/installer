@@ -59,7 +59,7 @@ function Set_Dir(){
 }
 
 function Install_Docker(){
-    if which docker >/dev/null; then
+    if which docker 2>/dev/null; then
         log "检测到 Docker 已安装，跳过安装步骤"
         log "启动 Docker "
         service docker start 2>&1 | tee -a ${CURRENT_DIR}/install.log
@@ -81,7 +81,7 @@ function Install_Docker(){
             mkdir -p "$docker_config_folder"
         fi
 
-        docker version >/dev/null
+        docker version 2>/dev/null
         if [[ $? -ne 0 ]]; then
             log "docker 安装失败"
             exit 1
@@ -92,7 +92,7 @@ function Install_Docker(){
 }
 
 function Install_Compose(){
-    docker-compose version >/dev/null
+    docker-compose version 2>/dev/null
     if [[ $? -ne 0 ]]; then
         log "... 在线安装 docker-compose"
         
@@ -104,7 +104,7 @@ function Install_Compose(){
         chmod +x /usr/local/bin/docker-compose
         ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 
-        docker-compose version >/dev/null
+        docker-compose version 2>/dev/null
         if [[ $? -ne 0 ]]; then
             log "docker-compose 安装失败"
             exit 1
@@ -128,21 +128,23 @@ function Install_Compose(){
 }
 
 function Set_Firewall(){
-    if which firewall-cmd >/dev/null; then
+    PANEL_PORT=`expr $RANDOM % 55535 + 10000`
+    
+    if which firewall-cmd 2>/dev/null; then
         if systemctl is-active firewalld &>/dev/null ;then
-            log "防火墙开放 9999 端口"
-            firewall-cmd --zone=public --add-port=9999/tcp --permanent
+            log "防火墙开放 $PANEL_PORT 端口"
+            firewall-cmd --zone=public --add-port=$PANEL_PORT/tcp --permanent
             firewall-cmd --reload
         else
             log "防火墙未开启，忽略端口开放"
         fi
     fi
 
-    if which ufw >/dev/null; then
+    if which ufw 2>/dev/null; then
         is_active=`sudo ufw status | head -n 1 | awk '{print $2}'`
         if [[ $is_active == "active" ]];then
-            log "防火墙开放 9999 端口"
-            sudo ufw allow 9999/tcp
+            log "防火墙开放 $PANEL_PORT 端口"
+            sudo ufw allow $PANEL_PORT/tcp
             sudo ufw reload
         else
             log "防火墙未开启，忽略端口开放"
@@ -165,6 +167,7 @@ function Init_Panel(){
     fi
 
     sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" ./1pctl
+    sed -i -e "s#PANEL_PORT=.*#PANEL_PORT=${PANEL_PORT}#g" ./1pctl
     cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
     if [[ ! -f /usr/bin/1pctl ]]; then
         ln -s /usr/local/bin/1pctl /usr/bin/1pctl 2>/dev/null
@@ -175,7 +178,7 @@ function Init_Panel(){
     systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
 
     log "启动 1Panel 服务"
-    1pctl start | tee -a ${CURRENT_DIR}/install.log
+    systemctl start 1panel | tee -a ${CURRENT_DIR}/install.log
 
     for b in {1..30}
     do
@@ -196,14 +199,14 @@ function Show_Result(){
     log "=================感谢您的耐心等待，安装已经完成=================="
     log ""
     log "请用浏览器访问面板:"
-    log "http://\$LOCAL_IP:9999"
+    log "http://\$LOCAL_IP:$PANEL_PORT"
     log ""
     log "项目官网: https://1panel.cn"
     log "项目文档: https://1panel.cn/docs"
     log "代码仓库: https://github.com/1Panel-dev/1Panel"
     log "快速安装: https://github.com/1Panel-dev/1Panel/releases/latest"
     log ""
-    log "如果使用的是云服务器，请至安全组开放 9999 端口"
+    log "如果使用的是云服务器，请至安全组开放 $PANEL_PORT 端口"
     log ""
     log "================================================================"
 }
