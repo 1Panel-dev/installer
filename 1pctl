@@ -5,6 +5,7 @@ args=$@
 
 BASE_DIR=/opt
 PANEL_PORT=9999
+ORIGINAL_INSTALLED_VERSION=v1.0.0
 
 function usage() {
     echo "1Panel 控制脚本"
