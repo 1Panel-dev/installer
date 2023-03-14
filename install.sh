@@ -166,9 +166,9 @@ function Init_Panel(){
         ln -s /usr/local/bin/1panel /usr/bin/1panel 2>/dev/null
     fi
 
-    sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" ./1pctl
-    sed -i -e "s#PANEL_PORT=.*#PANEL_PORT=${PANEL_PORT}#g" ./1pctl
     cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
+    sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
+    sed -i -e "s#PANEL_PORT=.*#PANEL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
     if [[ ! -f /usr/bin/1pctl ]]; then
         ln -s /usr/local/bin/1pctl /usr/bin/1pctl 2>/dev/null
     fi
