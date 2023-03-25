@@ -204,7 +204,6 @@ function Show_Result(){
     log "项目官网: https://1panel.cn"
     log "项目文档: https://1panel.cn/docs"
     log "代码仓库: https://github.com/1Panel-dev/1Panel"
-    log "快速安装: https://github.com/1Panel-dev/1Panel/releases/latest"
     log ""
     log "如果使用的是云服务器，请至安全组开放 $PANEL_PORT 端口"
     log ""
