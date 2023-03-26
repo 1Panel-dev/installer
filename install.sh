@@ -37,7 +37,7 @@ function Prepare_System(){
 }
 
 function Set_Dir(){
-    if read -t 120 -p "设置 1Panel 安装目录，默认 /opt: " PANEL_BASE_DIR;then
+    if read -t 120 -p "设置 1Panel 安装目录（默认为/opt）：" PANEL_BASE_DIR;then
         if [[ "$PANEL_BASE_DIR" != "" ]];then
             if [[ "$PANEL_BASE_DIR" != /* ]];then
                 log "请输入目录的完整路径"
@@ -127,9 +127,27 @@ function Install_Compose(){
     fi
 }
 
+function Set_Port(){
+    DEFAULT_PORT=`expr $RANDOM % 55535 + 10000`
+
+    while true; do
+        read -p "设置 1Panel 端口（默认为$DEFAULT_PORT）：" PANEL_PORT
+
+        if [[ "$PANEL_PORT" == "" ]];then
+            PANEL_PORT=$DEFAULT_PORT
+        fi
+
+        if ! [[ "$PANEL_PORT" =~ ^[1-9][0-9]{0,4}$ && "$PANEL_PORT" -le 65535 ]]; then
+            echo "错误：输入的端口号必须在 1 到 65535 之间"
+            continue
+        fi
+
+        log "您设置的端口为：$PANEL_PORT"
+        break
+    done
+}
+
 function Set_Firewall(){
-    PANEL_PORT=`expr $RANDOM % 55535 + 10000`
-    
     if which firewall-cmd 2>/dev/null; then
         if systemctl is-active firewalld &>/dev/null ;then
             log "防火墙开放 $PANEL_PORT 端口"
@@ -215,6 +233,7 @@ function main(){
     Set_Dir
     Install_Docker
     Install_Compose
+    Set_Port
     Set_Firewall
     Init_Panel
     Show_Result
