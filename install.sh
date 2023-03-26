@@ -62,7 +62,7 @@ function Install_Docker(){
     if which docker 2>/dev/null; then
         log "检测到 Docker 已安装，跳过安装步骤"
         log "启动 Docker "
-        service docker start 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
     else
         log "... 在线安装 docker"
 
@@ -71,10 +71,10 @@ function Install_Docker(){
             log "docker 在线安装脚本下载失败，请稍候重试"
             exit 1
         fi
-        sudo sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
         
         log "... 启动 docker"
-        systemctl enable docker; systemctl daemon-reload; service docker start 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
 
         docker_config_folder="/etc/docker"
         if [[ ! -d "$docker_config_folder" ]];then
@@ -159,11 +159,11 @@ function Set_Firewall(){
     fi
 
     if which ufw 2>/dev/null; then
-        is_active=`sudo ufw status | head -n 1 | awk '{print $2}'`
+        is_active=`ufw status | head -n 1 | awk '{print $2}'`
         if [[ $is_active == "active" ]];then
             log "防火墙开放 $PANEL_PORT 端口"
-            sudo ufw allow $PANEL_PORT/tcp
-            sudo ufw reload
+            ufw allow $PANEL_PORT/tcp
+            ufw reload
         else
             log "防火墙未开启，忽略端口开放"
         fi
