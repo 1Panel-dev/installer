@@ -29,8 +29,7 @@ function Prepare_System(){
         exit 1
     fi
 
-    isInstalled=`systemctl status 1panel 2>&1 | grep Active`
-    if [[ $isInstalled != "" ]]; then
+    if which 1panel >/dev/null 2>&1; then
         log "1Panel Linux 服务器运维管理面板已安装，请勿重复安装"
         exit 1
     fi
@@ -59,7 +58,7 @@ function Set_Dir(){
 }
 
 function Install_Docker(){
-    if which docker 2>/dev/null; then
+    if which docker >/dev/null 2>&1; then
         log "检测到 Docker 已安装，跳过安装步骤"
         log "启动 Docker "
         systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
@@ -81,7 +80,7 @@ function Install_Docker(){
             mkdir -p "$docker_config_folder"
         fi
 
-        docker version 2>/dev/null
+        docker version >/dev/null 2>&1
         if [[ $? -ne 0 ]]; then
             log "docker 安装失败"
             exit 1
@@ -92,7 +91,7 @@ function Install_Docker(){
 }
 
 function Install_Compose(){
-    docker-compose version 2>/dev/null
+    docker-compose version >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
         log "... 在线安装 docker-compose"
         
@@ -104,7 +103,7 @@ function Install_Compose(){
         chmod +x /usr/local/bin/docker-compose
         ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 
-        docker-compose version 2>/dev/null
+        docker-compose version >/dev/null 2>&1
         if [[ $? -ne 0 ]]; then
             log "docker-compose 安装失败"
             exit 1
@@ -148,8 +147,8 @@ function Set_Port(){
 }
 
 function Set_Firewall(){
-    if which firewall-cmd 2>/dev/null; then
-        if systemctl is-active firewalld &>/dev/null ;then
+    if which firewall-cmd >/dev/null 2>&1; then
+        if systemctl status firewalld | grep -q "Active: active" >/dev/null 2>&1;then
             log "防火墙开放 $PANEL_PORT 端口"
             firewall-cmd --zone=public --add-port=$PANEL_PORT/tcp --permanent
             firewall-cmd --reload
@@ -158,9 +157,8 @@ function Set_Firewall(){
         fi
     fi
 
-    if which ufw 2>/dev/null; then
-        is_active=`ufw status | head -n 1 | awk '{print $2}'`
-        if [[ $is_active == "active" ]];then
+    if which ufw >/dev/null 2>&1; then
+        if systemctl status ufw | grep -q "Active: active" >/dev/null 2>&1;then
             log "防火墙开放 $PANEL_PORT 端口"
             ufw allow $PANEL_PORT/tcp
             ufw reload
@@ -181,14 +179,14 @@ function Init_Panel(){
 
     cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel
     if [[ ! -f /usr/bin/1panel ]]; then
-        ln -s /usr/local/bin/1panel /usr/bin/1panel 2>/dev/null
+        ln -s /usr/local/bin/1panel /usr/bin/1panel >/dev/null 2>&1
     fi
 
     cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
     sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
     sed -i -e "s#PANEL_PORT=.*#PANEL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
     if [[ ! -f /usr/bin/1pctl ]]; then
-        ln -s /usr/local/bin/1pctl /usr/bin/1pctl 2>/dev/null
+        ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
     fi
 
     cp ./1panel.service /etc/systemd/system
