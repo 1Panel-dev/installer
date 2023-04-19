@@ -65,12 +65,16 @@ function Install_Docker(){
     else
         log "... 在线安装 docker"
 
-        curl -fsSL https://resource.fit2cloud.com/get-docker-linux.sh -o get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        curl -fsSL https://get.docker.com -o get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
         if [[ ! -f get-docker.sh ]];then
             log "docker 在线安装脚本下载失败，请稍候重试"
             exit 1
         fi
-        sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
+            sh get-docker.sh --mirror Aliyun 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        else
+            sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        fi
         
         log "... 启动 docker"
         systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
