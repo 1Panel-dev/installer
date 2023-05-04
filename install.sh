@@ -263,7 +263,7 @@ function Show_Result(){
     log "=================感谢您的耐心等待，安装已经完成=================="
     log ""
     log "请用浏览器访问面板:"
-    log "面板地址: http://\$LOCAL_IP:$PANEL_PORT/login/$PANEL_ENTRANCE"
+    log "面板地址: http://\$LOCAL_IP:$PANEL_PORT/$PANEL_ENTRANCE"
     log "用户名称: $PANEL_USERNAME"
     log "用户密码: $PANEL_PASSWORD"
     log ""
