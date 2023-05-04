@@ -172,6 +172,46 @@ function Set_Firewall(){
     fi
 }
 
+function Set_Username(){
+    DEFAULT_USERNAME=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
+
+    while true; do
+        read -p "设置 1Panel 用户名称（默认为$DEFAULT_USERNAME）：" PANEL_USERNAME
+
+        if [[ "$PANEL_USERNAME" == "" ]];then
+            PANEL_USERNAME=$DEFAULT_USERNAME
+        fi
+
+        if [[ ! "$PANEL_USERNAME" =~ ^[a-zA-Z0-9_]{3,30}$ ]]; then
+            echo "错误：用户名称仅支持字母、数字、下划线，长度 3-30 位"
+            continue
+        fi
+
+        log "您设置的用户名称为：$PANEL_USERNAME"
+        break
+    done
+}
+
+function Set_Password(){
+    DEFAULT_PASSWORD=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
+
+    while true; do
+        read -p "设置 1Panel 用户密码（默认为$DEFAULT_PASSWORD）：" PANEL_PASSWORD
+
+        if [[ "$PANEL_PASSWORD" == "" ]];then
+            PANEL_PASSWORD=$DEFAULT_PASSWORD
+        fi
+
+        if [[ ! "$PANEL_PASSWORD" =~ ^[a-zA-Z0-9_]{8,30}$ ]]; then
+            echo "错误：用户密码仅支持字母、数字、下划线，长度 8-30 位"
+            continue
+        fi
+
+        log "您设置的用户密码为：$PANEL_PASSWORD"
+        break
+    done
+}
+
 function Init_Panel(){
     log "配置 1Panel Service"
 
@@ -188,7 +228,11 @@ function Init_Panel(){
 
     cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
     sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
-    sed -i -e "s#PANEL_PORT=.*#PANEL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
+    sed -i -e "s#ORIGINAL_PORT=.*#ORIGINAL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
+    sed -i -e "s#ORIGINAL_USERNAME=.*#ORIGINAL_USERNAME=${PANEL_USERNAME}#g" /usr/local/bin/1pctl
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PANEL_PASSWORD}#g" /usr/local/bin/1pctl
+    PANEL_ENTRANCE=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
+    sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
     if [[ ! -f /usr/bin/1pctl ]]; then
         ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
     fi
@@ -219,7 +263,9 @@ function Show_Result(){
     log "=================感谢您的耐心等待，安装已经完成=================="
     log ""
     log "请用浏览器访问面板:"
-    log "http://\$LOCAL_IP:$PANEL_PORT"
+    log "面板地址: http://\$LOCAL_IP:$PANEL_PORT/login/$PANEL_ENTRANCE"
+    log "用户名称: $PANEL_USERNAME"
+    log "用户密码: $PANEL_PASSWORD"
     log ""
     log "项目官网: https://1panel.cn"
     log "项目文档: https://1panel.cn/docs"
@@ -237,6 +283,8 @@ function main(){
     Install_Compose
     Set_Port
     Set_Firewall
+    Set_Username
+    Set_Password
     Init_Panel
     Show_Result
 }
