@@ -196,14 +196,15 @@ function Set_Password(){
     DEFAULT_PASSWORD=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
 
     while true; do
-        read -p "设置 1Panel 用户密码（默认为$DEFAULT_PASSWORD）：" PANEL_PASSWORD
+        echo "设置 1Panel 用户密码（默认为$DEFAULT_PASSWORD）："
+        read -s PANEL_PASSWORD
 
         if [[ "$PANEL_PASSWORD" == "" ]];then
             PANEL_PASSWORD=$DEFAULT_PASSWORD
         fi
 
-        if [[ ! "$PANEL_PASSWORD" =~ ^[a-zA-Z0-9_]{8,30}$ ]]; then
-            echo "错误：用户密码仅支持字母、数字、下划线，长度 8-30 位"
+        if [[ ! "$PANEL_PASSWORD" =~ ^[a-zA-Z0-9_!@#$%\&*,.?]{8,30}$ ]]; then
+            echo "错误：用户密码仅支持字母、数字、特殊字符（!@#$%&*_,.?），长度 8-30 位"
             continue
         fi
 
