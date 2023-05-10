@@ -208,7 +208,6 @@ function Set_Password(){
             continue
         fi
 
-        log "您设置的用户密码为：$PANEL_PASSWORD"
         break
     done
 }
