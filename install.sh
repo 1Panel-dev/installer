@@ -203,8 +203,8 @@ function Set_Password(){
             PANEL_PASSWORD=$DEFAULT_PASSWORD
         fi
 
-        if [[ ! "$PANEL_PASSWORD" =~ ^[a-zA-Z0-9_!@#$%\&*,.?]{8,30}$ ]]; then
-            echo "错误：用户密码仅支持字母、数字、特殊字符（!@#$%&*_,.?），长度 8-30 位"
+        if [[ ! "$PANEL_PASSWORD" =~ ^[a-zA-Z0-9_!@#$%*,.?]{8,30}$ ]]; then
+            echo "错误：用户密码仅支持字母、数字、特殊字符（!@#$%*_,.?），长度 8-30 位"
             continue
         fi
 
@@ -230,7 +230,8 @@ function Init_Panel(){
     sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_PORT=.*#ORIGINAL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_USERNAME=.*#ORIGINAL_USERNAME=${PANEL_USERNAME}#g" /usr/local/bin/1pctl
-    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PANEL_PASSWORD}#g" /usr/local/bin/1pctl
+    ESCAPED_PANEL_PASSWORD=$(echo "$PANEL_PASSWORD" | sed 's/[!@#$%*_,.?]/\\&/g')
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
     PANEL_ENTRANCE=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
     sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
     if [[ ! -f /usr/bin/1pctl ]]; then
