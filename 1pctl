@@ -24,10 +24,9 @@ function usage() {
     echo "  restart             重启 1Panel 服务"
     echo "  uninstall           卸载 1Panel 服务"
     echo "  user-info           获取 1Panel 用户信息"
-    echo "  reset-entrance      取消 1Panel 安全入口"
-    echo "  reset-mfa           关闭 1Panel 两步验证"
-    echo "  reset-https         取消 1Panel https 方式登录"
     echo "  version             查看 1Panel 版本信息"
+    echo "  reset               重置 1Panel 系统信息"
+    echo "  app                 应用商店相关命令"
 }
 function status() {
     systemctl status 1panel.service

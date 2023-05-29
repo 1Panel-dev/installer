@@ -6,6 +6,12 @@ if [[ $osCheck =~ 'x86_64' ]];then
     architecture="amd64"
 elif [[ $osCheck =~ 'arm64' ]] || [[ $osCheck =~ 'aarch64' ]];then
     architecture="arm64"
+elif [[ $osCheck =~ 'armv7l' ]];then
+    architecture="armv7"
+elif [[ $osCheck =~ 'ppc64le' ]];then
+    architecture="ppc64le"
+elif [[ $osCheck =~ 's390x' ]];then
+    architecture="s390x"
 else
     echo "暂不支持的系统架构，请参阅官方文档，选择受支持的系统。"
     exit 1

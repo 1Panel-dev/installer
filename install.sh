@@ -23,12 +23,6 @@ EOF
 log "======================= 开始安装 ======================="
 
 function Prepare_System(){
-    is64bit=`getconf LONG_BIT`
-    if [[ $is64bit != "64" ]]; then
-        log "不支持 32 位系统安装 1Panel Linux 服务器运维管理面板，请更换 64 位系统安装"
-        exit 1
-    fi
-
     if which 1panel >/dev/null 2>&1; then
         log "1Panel Linux 服务器运维管理面板已安装，请勿重复安装"
         exit 1
