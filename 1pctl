@@ -26,7 +26,6 @@ function usage() {
     echo "  user-info           获取 1Panel 用户信息"
     echo "  version             查看 1Panel 版本信息"
     echo "  reset               重置 1Panel 系统信息"
-    echo "  app                 应用商店相关命令"
 }
 function status() {
     systemctl status 1panel.service
@@ -67,19 +66,26 @@ function uninstall() {
 function user-info() {
     1panel user-info
 }
-function reset-entrance() {
-    1panel reset-entrance
-    1pctl restart
-}
-function reset-mfa() {
-    1panel reset-mfa
-}
-function reset-https() {
-    1panel reset-https
-    1pctl restart
-}
 function version() {
     1panel version
+}
+function reset() {
+    1panel reset
+}
+function reset_domain() {
+    1panel reset domain
+}
+function reset_entrance() {
+    1panel reset entrance
+}
+function reset_https() {
+    1panel reset https
+}
+function reset_ips() {
+    1panel reset ips
+}
+function reset_mfa() {
+    1panel reset mfa
 }
 
 function main() {
@@ -102,17 +108,30 @@ function main() {
         user-info)
             user-info
             ;;
-        reset-entrance)
-            reset-entrance
-            ;;
-        reset-mfa)
-            reset-mfa
-            ;;
-        reset-https)
-            reset-https
-            ;;
         version)
             version
+            ;;
+        reset)
+            case "${target}" in
+                domain)
+                    reset_domain
+                    ;;
+                entrance)
+                    reset_entrance
+                    ;;
+                https)
+                    reset_https
+                    ;;
+                ips)
+                    reset_ips
+                    ;;
+                mfa)
+                    reset_mfa
+                    ;;
+                *)
+                    reset
+                    ;;
+            esac
             ;;
         help)
             usage
