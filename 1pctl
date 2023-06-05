@@ -80,6 +80,7 @@ function reset_entrance() {
 }
 function reset_https() {
     1panel reset https
+    restart
 }
 function reset_ips() {
     1panel reset ips
