@@ -26,6 +26,7 @@ function usage() {
     echo "  user-info           获取 1Panel 用户信息"
     echo "  version             查看 1Panel 版本信息"
     echo "  reset               重置 1Panel 系统信息"
+    echo "  restore             恢复 1Panel 服务及数据"
 }
 function status() {
     systemctl status 1panel.service
@@ -66,6 +67,11 @@ function uninstall() {
 function user-info() {
     1panel user-info
 }
+function restore() {
+    1panel restore
+    systemctl daemon-reload
+    restart 
+}
 function version() {
     1panel version
 }
@@ -102,6 +108,9 @@ function main() {
             ;;
         restart)
             restart
+            ;;
+        restore)
+            restore
             ;;
         uninstall)
             uninstall
