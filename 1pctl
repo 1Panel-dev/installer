@@ -68,9 +68,17 @@ function user-info() {
     1panel user-info
 }
 function restore() {
-    1panel restore
-    systemctl daemon-reload
-    restart 
+    read -p "1Panel 将会恢复至上一个稳定版本，是否继续 [y/n] : " yn
+    if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
+        echo -e ""
+        1panel restore
+        systemctl daemon-reload
+        restart
+        echo -e ""
+        1panel version
+    else
+        exit 0
+    fi
 }
 function version() {
     1panel version
