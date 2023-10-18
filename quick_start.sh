@@ -27,17 +27,33 @@ else
 fi
 
 VERSION=$(curl -s https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/latest)
+HASH_FILE_URL="https://resource.fit2cloud.com/1panel/package/stable/${VERSION}/release/checksums.txt"
 
 if [[ "x${VERSION}" == "x" ]];then
     echo "获取最新版本失败，请稍候重试"
     exit 1
 fi
 
-echo "开始下载 1Panel ${VERSION} 版本在线安装包"
-
 package_file_name="1panel-${VERSION}-linux-${architecture}.tar.gz"
 package_download_url="https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/${VERSION}/release/${package_file_name}"
+expected_hash=$(curl -s "$HASH_FILE_URL" | grep "$package_file_name" | awk '{print $1}')
 
+if [ -f ${package_file_name} ];then
+    actual_hash=$(sha256sum "$package_file_name" | awk '{print $1}')
+    if [[ "$expected_hash" == "$actual_hash" ]];then
+        echo "安装包已存在，跳过下载"
+        rm -rf 1panel-${VERSION}-linux-${architecture}
+        tar zxvf ${package_file_name}
+        cd 1panel-${VERSION}-linux-${architecture}
+        /bin/bash install.sh
+        exit 0
+    else
+        echo "已存在安装包，但是哈希值不一致，开始重新下载"
+        rm -f ${package_file_name}
+    fi
+fi
+
+echo "开始下载 1Panel ${VERSION} 版本在线安装包"
 echo "安装包下载地址： ${package_download_url}"
 
 curl -LOk -o ${package_file_name} ${package_download_url}
