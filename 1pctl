@@ -24,6 +24,7 @@ function usage() {
     echo "  restart             重启 1Panel 服务"
     echo "  uninstall           卸载 1Panel 服务"
     echo "  user-info           获取 1Panel 用户信息"
+    echo "  listen-ip           切换 1Panel 监听 IP"
     echo "  version             查看 1Panel 版本信息"
     echo "  reset               重置 1Panel 系统信息"
     echo "  restore             恢复 1Panel 服务及数据"
@@ -66,6 +67,17 @@ function uninstall() {
 }
 function user-info() {
     1panel user-info
+}
+function listen-ip() {
+    1panel listen-ip
+}
+function listen_ipv4() {
+    1panel listen-ip ipv4
+    restart
+}
+function listen_ipv6() {
+    1panel listen-ip ipv6
+    restart
 }
 function restore() {
     read -p "1Panel 将会恢复至上一个稳定版本，是否继续 [y/n] : " yn
@@ -125,6 +137,19 @@ function main() {
             ;;
         user-info)
             user-info
+            ;;
+        listen-ip)
+            case "${target}" in
+                ipv4)
+                    listen_ipv4
+                    ;;
+                ipv6)
+                    listen_ipv6
+                    ;;
+                *)
+                    listen-ip
+                    ;;
+            esac
             ;;
         version)
             version
