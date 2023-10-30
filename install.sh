@@ -257,12 +257,27 @@ function Init_Panel(){
     done
 }
 
+function Get_Ip(){
+    active_interface=$(ip route get 8.8.8.8 | awk 'NR==1 {print $5}')
+    if [[ -z $active_interface ]];then
+        LOCAL_IP="127.0.0.1"
+    else
+        LOCAL_IP=`ip -4 addr show dev "$active_interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}'`
+    fi
+
+    PUBLIC_IP=`curl -s https://api64.ipify.org`
+    if [[ -z "$PUBLIC_IP" ]];then
+        PUBLIC_IP="N/A"
+    fi
+}
+
 function Show_Result(){
     log ""
     log "=================感谢您的耐心等待，安装已经完成=================="
     log ""
     log "请用浏览器访问面板:"
-    log "面板地址: http://\$LOCAL_IP:$PANEL_PORT/$PANEL_ENTRANCE"
+    log "外网地址: http://$PUBLIC_IP:$PANEL_PORT/$PANEL_ENTRANCE"
+    log "内网地址: http://$LOCAL_IP:$PANEL_PORT/$PANEL_ENTRANCE"
     log "用户名称: $PANEL_USERNAME"
     log "用户密码: $PANEL_PASSWORD"
     log ""
@@ -285,6 +300,7 @@ function main(){
     Set_Username
     Set_Password
     Init_Panel
+    Get_Ip
     Show_Result
 }
 main
