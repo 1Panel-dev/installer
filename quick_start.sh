@@ -27,7 +27,7 @@ else
 fi
 
 VERSION=$(curl -s https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/latest)
-HASH_FILE_URL="https://resource.fit2cloud.com/1panel/package/stable/${VERSION}/release/checksums.txt"
+HASH_FILE_URL="https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/${VERSION}/release/checksums.txt"
 
 if [[ "x${VERSION}" == "x" ]];then
     echo "获取最新版本失败，请稍候重试"
