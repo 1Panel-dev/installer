@@ -259,15 +259,19 @@ function Init_Panel(){
 
 function Get_Ip(){
     active_interface=$(ip route get 8.8.8.8 | awk 'NR==1 {print $5}')
-    if [[ -z $active_interface ]];then
+    if [[ -z $active_interface ]]; then
         LOCAL_IP="127.0.0.1"
     else
         LOCAL_IP=`ip -4 addr show dev "$active_interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}'`
     fi
 
     PUBLIC_IP=`curl -s https://api64.ipify.org`
-    if [[ -z "$PUBLIC_IP" ]];then
+    if [[ -z "$PUBLIC_IP" ]]; then
         PUBLIC_IP="N/A"
+    fi
+    if echo "$PUBLIC_IP" | grep -q ":"; then
+        PUBLIC_IP=[${PUBLIC_IP}]
+        1pctl listen-ip ipv6
     fi
 }
 
