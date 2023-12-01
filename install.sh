@@ -294,11 +294,27 @@ function Show_Result(){
     log "================================================================"
 }
 
+function Install_Require(){
+    if which apt >/dev/null 2>&1; then
+        apt update
+        apt install -y unzip ufw supervisor
+    elif which yum >/dev/null 2>&1; then
+        yum update
+        yum install -y unzip firewalld
+        yum install -y epel-release
+        yum install -y supervisor
+    else
+        log "不支持的操作系统"
+        exit 1
+    fi
+}
+
 function main(){
     Prepare_System
     Set_Dir
     Install_Docker
     Install_Compose
+    Install_Require
     Set_Port
     Set_Firewall
     Set_Username
