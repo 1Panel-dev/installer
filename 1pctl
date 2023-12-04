@@ -26,6 +26,7 @@ function usage() {
     echo "  user-info           获取 1Panel 用户信息"
     echo "  listen-ip           切换 1Panel 监听 IP"
     echo "  version             查看 1Panel 版本信息"
+    echo "  update              修改 1Panel 系统信息"
     echo "  reset               重置 1Panel 系统信息"
     echo "  restore             恢复 1Panel 服务及数据"
 }
@@ -114,6 +115,18 @@ function reset_ips() {
 function reset_mfa() {
     1panel reset mfa
 }
+function update() {
+    1panel update
+}
+function update_username() {
+    1panel update username
+}
+function update_password() {
+    1panel update password
+}
+function update_port() {
+    1panel update port
+}
 
 function main() {
     case "${action}" in
@@ -173,6 +186,22 @@ function main() {
                     ;;
                 *)
                     reset
+                    ;;
+            esac
+            ;;
+        update)
+            case "${target}" in
+                username)
+                    update_username
+                    ;;
+                password)
+                    update_password
+                    ;;
+                port)
+                    update_port
+                    ;;
+                *)
+                    update
                     ;;
             esac
             ;;
