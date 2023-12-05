@@ -174,18 +174,18 @@ function Set_Username(){
     DEFAULT_USERNAME=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
 
     while true; do
-        read -p "设置 1Panel 用户名称（默认为$DEFAULT_USERNAME）：" PANEL_USERNAME
+        read -p "设置 1Panel 面板用户（默认为$DEFAULT_USERNAME）：" PANEL_USERNAME
 
         if [[ "$PANEL_USERNAME" == "" ]];then
             PANEL_USERNAME=$DEFAULT_USERNAME
         fi
 
         if [[ ! "$PANEL_USERNAME" =~ ^[a-zA-Z0-9_]{3,30}$ ]]; then
-            echo "错误：用户名称仅支持字母、数字、下划线，长度 3-30 位"
+            echo "错误：面板用户仅支持字母、数字、下划线，长度 3-30 位"
             continue
         fi
 
-        log "您设置的用户名称为：$PANEL_USERNAME"
+        log "您设置的面板用户为：$PANEL_USERNAME"
         break
     done
 }
@@ -194,7 +194,7 @@ function Set_Password(){
     DEFAULT_PASSWORD=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
 
     while true; do
-        echo "设置 1Panel 用户密码（默认为$DEFAULT_PASSWORD）："
+        echo "设置 1Panel 面板密码（默认为$DEFAULT_PASSWORD）："
         read -s PANEL_PASSWORD
 
         if [[ "$PANEL_PASSWORD" == "" ]];then
@@ -202,7 +202,7 @@ function Set_Password(){
         fi
 
         if [[ ! "$PANEL_PASSWORD" =~ ^[a-zA-Z0-9_!@#$%*,.?]{8,30}$ ]]; then
-            echo "错误：用户密码仅支持字母、数字、特殊字符（!@#$%*_,.?），长度 8-30 位"
+            echo "错误：面板密码仅支持字母、数字、特殊字符（!@#$%*_,.?），长度 8-30 位"
             continue
         fi
 
@@ -282,8 +282,8 @@ function Show_Result(){
     log "请用浏览器访问面板:"
     log "外网地址: http://$PUBLIC_IP:$PANEL_PORT/$PANEL_ENTRANCE"
     log "内网地址: http://$LOCAL_IP:$PANEL_PORT/$PANEL_ENTRANCE"
-    log "用户名称: $PANEL_USERNAME"
-    log "用户密码: $PANEL_PASSWORD"
+    log "面板用户: $PANEL_USERNAME"
+    log "面板密码: $PANEL_PASSWORD"
     log ""
     log "项目官网: https://1panel.cn"
     log "项目文档: https://1panel.cn/docs"
