@@ -22,6 +22,13 @@ EOF
 
 log "======================= 开始安装 ======================="
 
+function Check_Root() {
+  if [[ $EUID -ne 0 ]]; then
+    echo "请使用 root 或 sudo 权限运行此脚本"
+    exit 1
+  fi
+}
+
 function Prepare_System(){
     if which 1panel >/dev/null 2>&1; then
         log "1Panel Linux 服务器运维管理面板已安装，请勿重复安装"
@@ -59,31 +66,86 @@ function Install_Docker(){
     else
         log "... 在线安装 docker"
 
-        curl -fsSL https://get.docker.com -o get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
-        if [[ ! -f get-docker.sh ]];then
-            log "docker 在线安装脚本下载失败，请稍候重试"
-            exit 1
-        fi
         if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
-            sh get-docker.sh --mirror Aliyun 2>&1 | tee -a ${CURRENT_DIR}/install.log
+            sources=(
+                "https://mirrors.aliyun.com/docker-ce"
+                "https://mirrors.tencent.com/docker-ce"
+                "https://mirrors.163.com/docker-ce"
+                "https://mirrors.cernet.edu.cn/docker-ce"
+            )
+
+            get_average_delay() {
+                local source=$1
+                local total_delay=0
+                local iterations=3
+
+                for ((i = 0; i < iterations; i++)); do
+                    delay=$(curl -o /dev/null -s -w "%{time_total}\n" "$source")
+                    total_delay=$(awk "BEGIN {print $total_delay + $delay}")
+                done
+
+                average_delay=$(awk "BEGIN {print $total_delay / $iterations}")
+                echo "$average_delay"
+            }
+
+            min_delay=${#sources[@]}
+            selected_source=""
+
+            for source in "${sources[@]}"; do
+                average_delay=$(get_average_delay "$source")
+
+                if (( $(awk 'BEGIN { print '"$average_delay"' < '"$min_delay"' }') )); then
+                    min_delay=$average_delay
+                    selected_source=$source
+                fi
+            done
+
+            if [ -n "$selected_source" ]; then
+                echo "选择延迟最低的源 $selected_source，延迟为 $min_delay 秒"
+                export DOWNLOAD_URL="$selected_source"
+                curl -fsSL "https://get.docker.com" -o get-docker.sh
+                sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+
+                log "... 启动 docker"
+                systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
+
+                docker_config_folder="/etc/docker"
+                if [[ ! -d "$docker_config_folder" ]];then
+                    mkdir -p "$docker_config_folder"
+                fi
+
+                docker version >/dev/null 2>&1
+                if [[ $? -ne 0 ]]; then
+                    log "docker 安装失败"
+                    exit 1
+                else
+                    log "docker 安装成功"
+                fi
+            else
+                log "无法选择源进行安装"
+                exit 1
+            fi
         else
+            log "非中国大陆地区，无需更改源"
+            export DOWNLOAD_URL="https://download.docker.com"
+            curl -fsSL "https://get.docker.com" -o get-docker.sh
             sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
-        fi
-        
-        log "... 启动 docker"
-        systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
 
-        docker_config_folder="/etc/docker"
-        if [[ ! -d "$docker_config_folder" ]];then
-            mkdir -p "$docker_config_folder"
-        fi
+            log "... 启动 docker"
+            systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
 
-        docker version >/dev/null 2>&1
-        if [[ $? -ne 0 ]]; then
-            log "docker 安装失败"
-            exit 1
-        else
-            log "docker 安装成功"
+            docker_config_folder="/etc/docker"
+            if [[ ! -d "$docker_config_folder" ]];then
+                mkdir -p "$docker_config_folder"
+            fi
+
+            docker version >/dev/null 2>&1
+            if [[ $? -ne 0 ]]; then
+                log "docker 安装失败"
+                exit 1
+            else
+                log "docker 安装成功"
+            fi
         fi
     fi
 }
@@ -295,6 +357,7 @@ function Show_Result(){
 }
 
 function main(){
+    Check_Root
     Prepare_System
     Set_Dir
     Install_Docker
