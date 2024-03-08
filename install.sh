@@ -192,37 +192,35 @@ function Install_Compose(){
 
 function Set_Port(){
     DEFAULT_PORT=`expr $RANDOM % 55535 + 10000`
-    if command -v lsof >/dev/null 2>&1; then 
-	while lsof -i:$DEFAULT_PORT; do
- 	    DEFAULT_PORT=`expr $RANDOM % 55535 + 10000`
- 	done
-    elif command -v netstat >/dev/null; then
-    	while netstat -tlun | grep -q ":$DEFAULT_PORT"; do
-     	    DEFAULT_PORT=`expr $RANDOM % 55535 + 10000`
-     	done
-    fi
+
     while true; do
         read -p "设置 1Panel 端口（默认为$DEFAULT_PORT）：" PANEL_PORT
 
         if [[ "$PANEL_PORT" == "" ]];then
             PANEL_PORT=$DEFAULT_PORT
         fi
-	if command -v lsof >/dev/null 2>&1; then 
-	    if lsof -i:$PANEL_PORT; then
- 		echo "端口$PANEL_PORT被占用，请重新输入..."
-   		continue
- 	    fi
-        elif command -v netstat >/dev/null; then
-	    if netstat -tlun | grep -q ":$DEFAULT_PORT"; then
-	    	echo "端口$PANEL_PORT被占用，请重新输入..."
-   		continue
-	    fi
-        fi
-    
+
         if ! [[ "$PANEL_PORT" =~ ^[1-9][0-9]{0,4}$ && "$PANEL_PORT" -le 65535 ]]; then
             echo "错误：输入的端口号必须在 1 到 65535 之间"
             continue
         fi
+
+ 	if command -v lsof >/dev/null 2>&1; then 
+	    if lsof -i:$PANEL_PORT >/dev/null 2>&1; then
+ 		echo "端口$PANEL_PORT被占用，请重新输入..."
+   		continue
+ 	    fi
+        elif command -v ss >/dev/null 2>&1; then
+	    if ss -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
+     		echo "端口$PANEL_PORT被占用，请重新输入..."
+       		continue
+     	    fi
+	elif command -v netstat >/dev/null 2>&1; then
+	    if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
+	    	echo "端口$PANEL_PORT被占用，请重新输入..."
+   		continue
+	    fi
+	fi
 
         log "您设置的端口为：$PANEL_PORT"
         break
