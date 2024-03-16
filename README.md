@@ -1,4 +1,5 @@
-# 1Panel 安装包
+# openwrt 中 1Panel 安装包
+本仓库对1panel安装脚本作修改，以匹配openwrt中运行1panel。
 
 [1Panel](https://github.com/1Panel-dev/1Panel) 是一个现代化、开源的 Linux 服务器运维管理面板。
 
