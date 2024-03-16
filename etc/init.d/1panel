@@ -11,3 +11,4 @@ start_service() {
     procd_set_param stdout 0 # 默认设置不输出系统日志，如为1，在系统日志可看到1panel前端响应信息
     procd_set_param stderr 1
     procd_close_instance
+}
