@@ -57,7 +57,7 @@ function Set_Dir(){
         log "(设置超时，使用默认安装路径 /opt)"
     fi
 }
-
+# 使用的openwrt 固件，需已安装docker && docker-compose 
 function Install_Docker(){
     if which docker >/dev/null 2>&1; then
         log "检测到 Docker 已安装，跳过安装步骤"
@@ -297,7 +297,7 @@ function Init_Panel(){
     rm -rf $RUN_BASE_DIR/*
 
     cd ${CURRENT_DIR}
-
+    mkdir -p /usr/local/bin 
     cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel
     if [[ ! -f /usr/bin/1panel ]]; then
         ln -s /usr/local/bin/1panel /usr/bin/1panel >/dev/null 2>&1
@@ -315,17 +315,18 @@ function Init_Panel(){
         ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
     fi
 
-    cp ./1panel.service /etc/systemd/system
+    # cp ./1panel.service /etc/systemd/system
+    cp ./etc/init.d/1panel /etc/init.d/1panel
 
-    systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    /etc/init.d/1panel enable && /etc/init.d/1panel reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
 
     log "启动 1Panel 服务"
-    systemctl start 1panel | tee -a ${CURRENT_DIR}/install.log
+    /etc/init.d/1panel start | tee -a ${CURRENT_DIR}/install.log
 
     for b in {1..30}
     do
         sleep 3
-        service_status=`systemctl status 1panel 2>&1 | grep Active`
+        service_status=`/etc/init.d/1panel status 2>&1 | grep Active`
         if [[ $service_status == *running* ]];then
             log "1Panel 服务启动成功!"
             break;
@@ -377,8 +378,8 @@ function main(){
     Check_Root
     Prepare_System
     Set_Dir
-    Install_Docker
-    Install_Compose
+    # Install_Docker
+    # Install_Compose
     Set_Port
     Set_Firewall
     Set_Username
