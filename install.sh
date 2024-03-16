@@ -316,6 +316,7 @@ function Init_Panel(){
     fi
 
     # cp ./1panel.service /etc/systemd/system
+    curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/etc/init.d/1panel -o /etc/init.d/1panel
     chmod +x /etc/init.d/1panel
 
     /etc/init.d/1panel enable && /etc/init.d/1panel reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
