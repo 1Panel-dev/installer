@@ -31,18 +31,18 @@ function usage() {
     echo "  restore             恢复 1Panel 服务及数据"
 }
 function status() {
-    systemctl status 1panel.service
+    /etc/init.d/1panel status
 }
 function start() {
-    systemctl start 1panel.service
+    /etc/init.d/1panel start
     status
 }
 function stop() {
-    systemctl stop 1panel.service
+    /etc/init.d/1panel stop
     status
 }
 function restart() {
-    systemctl restart 1panel.service
+    /etc/init.d/1panel restart
     status
 }
 function uninstall() {
@@ -51,7 +51,7 @@ function uninstall() {
         echo -e "================== 开始卸载 1Panel Linux 服务器运维管理面板 =================="
         echo -e ""
         echo -e "1) 停止 1Panel 服务进程..."
-        systemctl stop 1panel.service
+        /etc/init.d/1panel stop
     else
         exit 0
     fi
@@ -60,8 +60,8 @@ function uninstall() {
     rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service
 
     echo -e "3) 重新加载服务配置文件..."
-    systemctl daemon-reload
-    systemctl reset-failed
+    /etc/init.d/1panel disable
+    rm -rf /etc/init.d/1panel
 
     echo -e ""
     echo -e "================================== 卸载完成 =================================="
@@ -85,7 +85,7 @@ function restore() {
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
         echo -e ""
         1panel restore
-        systemctl daemon-reload
+        /etc/init.d/1panel reload
         restart
         echo -e ""
         1panel version
