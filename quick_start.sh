@@ -72,5 +72,5 @@ fi
 cd 1panel-${VERSION}-linux-${architecture}
 curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/install.sh -o install.sh
 curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/1pctl -o 1pctl
-
+sed -i "s/ORIGINAL_VERSION=v1.0.0/ORIGINAL_VERSION=${VERSION}/g" 1pctl
 /bin/bash install.sh
