@@ -32,8 +32,18 @@ opkg update
 ```sh
 opkg install luci-i18n-dockerman-zh-cn
 ```
+```sh
+opkg update
+opkg install docker-compose
+```
 *需要安装的包比较大（约100M)，如不能安装成功，在非磁盘空间不足的情况下，多运行几次安装命令试试，排除掉网络原因*
-
+*安装成功后，运行以下命令，查看版本号*
+```sh
+docker --version  # 查看docker 的安装版本；
+```
+```sh
+docker-compose --version # 查看docker-compose版本；
+```
 #### 不能使用的1panel功能
 
 *1、快照功能、备份功能: 在openwrt 中执行tar命令相关的功能，均不能正常执行，会报错;*
