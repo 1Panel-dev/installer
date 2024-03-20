@@ -46,7 +46,7 @@ docker-compose --version # 查看docker-compose版本；
 ```
 #### 不能使用的1panel功能
 
-*1、快照功能、备份功能: 在openwrt 中执行tar命令相关的功能，均不能正常执行，会报错;*
+*1、快照功能、备份功能: 在openwrt 中执行tar命令和systemctl 命令相关的功能，均不能正常执行，会报错;*
 
 *2、supervisor fail2ban firewall 相关功能暂不能正常使用；*
 
