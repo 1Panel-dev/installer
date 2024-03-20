@@ -15,7 +15,7 @@ WRT固件版本繁多，官方原版[openwrt](https://openwrt.org)及[Imortalwrt
 curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/quick_start.sh -o quick_start.sh && bash quick_start.sh
 ```
 ### 可能存在的问题：
-1、-ash: curl: not found  bash: not found 出现这类问题的原因是，所使用的openwrt版本，未安装curl  bash 命令 ；
+*1、-ash: curl: not found  bash: not found 出现这类问题的原因是，所使用的openwrt版本，未安装curl  bash 命令 ；*
 
 #### 解决办法：
 运行opkg update ，更新包列表，然后 运行opkg install {package};
@@ -44,6 +44,14 @@ docker --version  # 查看docker 的安装版本；
 ```sh
 docker-compose --version # 查看docker-compose版本；
 ```
+*2、/etc/localtime 不存在，导致应用商店安装的应用报错无法启动的问题*
+#### 解决办法
+```sh
+opkg update
+opkg install zoneinfo-asia  #安装zoneinfo
+service system restart  # 重启system 等同于 /etc/init.d/system restart
+```
+
 #### 不能使用的1panel功能
 
 *1、快照功能、备份功能: 在openwrt 中执行tar命令和systemctl 命令相关的功能，均不能正常执行，会报错;*
