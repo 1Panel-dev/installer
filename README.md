@@ -8,7 +8,7 @@
 
 ## 使用前须知
 
-openwrt固件版本繁多，openwrt官方原版及Imortalwrt版本等支持在线升级安装软件包的固件，请先安装docker，docker-compose；不具备docker且不支持在线安装docker的固件，在未更换固件的情况夏，可直接放弃安装尝试；
+WRT固件版本繁多，官方原版[openwrt](https://openwrt.org)及[Imortalwrt](https://downloads.immortalwrt.org/)版本或其他支持在线升级安装软件包的固件，请先安装docker，docker-compose；不具备docker且不支持在线安装docker的固件，在未更换固件的情况夏，可直接放弃安装尝试；
 
 ## 执行如下命令在openwrt中一键安装 1Panel:
 ```sh
