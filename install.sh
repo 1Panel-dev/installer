@@ -327,7 +327,7 @@ function Init_Panel(){
     for b in {1..30}
     do
         sleep 3
-        service_status=`/etc/init.d/1panel status 2>&1 | grep running`
+        service_status=`/etc/init.d/1panel status 2>&1 | grep -e running`
         if [[ $service_status == running ]];then
             log "1Panel 服务启动成功!"
             break;
