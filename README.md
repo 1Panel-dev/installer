@@ -14,6 +14,14 @@ WRT固件版本繁多，官方原版[openwrt](https://openwrt.org)及[Imortalwrt
 ```sh
 curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/quick_start.sh -o quick_start.sh && bash quick_start.sh
 ```
+### x86_amd64平台openwrt可尝试使用以下命令安装基于官方V1.10.1-lts源码的修改版本：
+```sh
+wget https://github.com/gcsong023/wrt1panel/releases/download/v1.10.9-lts/1panel-v1.10.9-lts-linux-amd64.tar.gz  && tar zxvf 1panel-v1.10.9-lts-linux-amd64.tar.gz && cd 1panel-v1.10.9-lts-linux-amd64 && bash install.sh  
+```
+### 或尝试替换1panel二进制文件方式
+```sh
+cp $pwd/1panel /usr/local/bin/1panel # 手动替换1panel二进制文件方式 $pwd 为压缩文件解压后目录。
+```
 ### 可能存在的问题：
 *1、-ash: curl: not found  bash: not found 出现这类问题的原因是，所使用的openwrt版本，未安装curl  bash 命令 ；*
 
