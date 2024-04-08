@@ -59,6 +59,10 @@ opkg update
 opkg install zoneinfo-asia  #安装zoneinfo
 service system restart  # 重启system 等同于 /etc/init.d/system restart
 ```
+*3、安装OpenResty 提示 80,443端口被占用的问题*
+
+openwrt 管理界面，默认会使用80，443端口，要么更改OpenResty 使用的端口号，要么更改openwrt web管理界面所使用的端口号。
+
 
 #### 不能使用的1panel功能
 
