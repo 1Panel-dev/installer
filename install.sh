@@ -23,10 +23,10 @@ EOF
 log "======================= 开始安装 ======================="
 
 function Check_Root() {
-  if [[ $EUID -ne 0 ]]; then
-    echo "请使用 root 或 sudo 权限运行此脚本"
-    exit 1
-  fi
+    if [[ $EUID -ne 0 ]]; then
+        echo "请使用 root 或 sudo 权限运行此脚本"
+        exit 1
+    fi
 }
 
 function Prepare_System(){
@@ -205,22 +205,17 @@ function Set_Port(){
             continue
         fi
 
- 	if command -v lsof >/dev/null 2>&1; then 
-	    if lsof -i:$PANEL_PORT >/dev/null 2>&1; then
- 		echo "端口$PANEL_PORT被占用，请重新输入..."
-   		continue
- 	    fi
-        elif command -v ss >/dev/null 2>&1; then
-	    if ss -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-     		echo "端口$PANEL_PORT被占用，请重新输入..."
-       		continue
-     	    fi
-	elif command -v netstat >/dev/null 2>&1; then
-	    if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-	    	echo "端口$PANEL_PORT被占用，请重新输入..."
-   		continue
-	    fi
-	fi
+        if command -v ss >/dev/null 2>&1; then
+            if ss -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
+                echo "端口$PANEL_PORT被占用，请重新输入..."
+                continue
+            fi
+        elif command -v netstat >/dev/null 2>&1; then
+            if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
+                echo "端口$PANEL_PORT被占用，请重新输入..."
+                continue
+            fi
+        fi
 
         log "您设置的端口为：$PANEL_PORT"
         break
