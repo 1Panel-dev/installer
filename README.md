@@ -6,6 +6,8 @@
 
 本仓库修改1panel安装脚本，以匹配openwrt的运行，安装脚本默认下载1panel 官方安装包后，替换1pctl、install.sh文件，并在openwrt /etc/init.d/目录下生成1panel 自启动文件。
 
+另外基于1panel-V1.10.1-lts源码，以修改tar命令适配busybox运行环境，打包生成在openwrt中运行的1panel二进制文件，可到仓库[wrt1panel](https://github.com/gcsong023/wrt1panel)选择、查看；
+
 ## 使用前须知
 
 WRT固件版本繁多，官方原版[openwrt](https://openwrt.org)及[Imortalwrt](https://downloads.immortalwrt.org/)版本或其他支持在线升级安装软件包的固件，请先安装docker，docker-compose；不具备docker且不支持在线安装docker的固件，在未更换固件的情况夏，可直接放弃安装尝试；
@@ -66,12 +68,12 @@ openwrt 管理界面，默认会使用80，443端口，要么更改OpenResty 使
 
 #### 不能使用的1panel功能
 
-*1、快照功能、备份功能: 在openwrt 中执行tar命令和systemctl 命令相关的功能，均不能正常执行，会报错;*
+*1、快照功能、备份功能: 在openwrt 中执行tar命令和systemctl 命令相关的功能，均不能正常执行，会报错;20240418补充: 以修改源代码的方式已修复快照功能和备份功能。详见：[releases](https://github.com/gcsong023/wrt1panel/releases)*
 
-*2、supervisor fail2ban firewall 相关功能暂不能正常使用；*
+*2、supervisor fail2ban firewall ssh管理 相关功能暂不能正常使用；*
 
 *3、可能还有其他暂不能正常使用的功能；*
 
 ### 问题反馈
 
-如果您在使用过程中遇到什么问题，或有进一步的需求需要反馈，请提交 GitHub Issue 到 [1Panel 项目的主仓库](https://github.com/1Panel-dev/1Panel/issues)
+如果您在使用过程中遇到什么问题，或有进一步的需求需要反馈，请提交 GitHub Issue 到 [1Panel 项目的主仓库](https://github.com/1Panel-dev/1Panel/issues),欢迎到[wrt1panel仓库](https://github.com/gcsong023/wrt1panel/issues)交流反馈在openwrt中使用1panel的相关问题。
