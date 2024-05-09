@@ -329,6 +329,7 @@ function Init_Panel(){
             exit 1
         fi
     done
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=\*\*\*\*\*\*\*\*\*\*#g" /usr/local/bin/1pctl
 }
 
 function Get_Ip(){
@@ -364,6 +365,8 @@ function Show_Result(){
     log "代码仓库: https://github.com/1Panel-dev/1Panel"
     log ""
     log "如果使用的是云服务器，请至安全组开放 $PANEL_PORT 端口"
+    log ""
+    log "为了您的服务器安全，在您离开此界面后您将无法再看到您的密码，请务必牢记您的密码。"
     log ""
     log "================================================================"
 }
