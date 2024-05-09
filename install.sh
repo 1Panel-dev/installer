@@ -270,7 +270,6 @@ function Set_Password(){
     while true; do
         echo "设置 1Panel 面板密码（默认为$DEFAULT_PASSWORD）："
         read -s PANEL_PASSWORD
-
         if [[ "$PANEL_PASSWORD" == "" ]];then
             PANEL_PASSWORD=$DEFAULT_PASSWORD
         fi
@@ -281,6 +280,25 @@ function Set_Password(){
         fi
 
         break
+    done
+}
+
+function Set_Entrance(){
+    DEFAULT_ENTRANCE=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
+
+    while true; do
+	echo "设置 1Panel 安全入口（默认为$DEFAULT_ENTRANCE）："
+	read -p PANEL_ENTRANCE
+	if [[ "$PANEL_ENTRANCE" == "" ]]; then
+    	    PANEL_ENTRANCE=$DEFAULT_ENTRANCE
+    	fi
+
+    	if [[ ! "$PANEL_ENTRANCE" =~ ^[a-zA-Z0-9_]{3,30}$ ]]; then
+            echo "错误：面板安全入口仅支持字母、数字、下划线，长度 3-30 位"
+            continue
+    	fi
+    
+    	break
     done
 }
 
@@ -304,7 +322,6 @@ function Init_Panel(){
     sed -i -e "s#ORIGINAL_USERNAME=.*#ORIGINAL_USERNAME=${PANEL_USERNAME}#g" /usr/local/bin/1pctl
     ESCAPED_PANEL_PASSWORD=$(echo "$PANEL_PASSWORD" | sed 's/[!@#$%*_,.?]/\\&/g')
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
-    PANEL_ENTRANCE=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
     sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
     if [[ ! -f /usr/bin/1pctl ]]; then
         ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
@@ -381,6 +398,7 @@ function main(){
     Set_Firewall
     Set_Username
     Set_Password
+    Set_Entrance
     Init_Panel
     Get_Ip
     Show_Result
