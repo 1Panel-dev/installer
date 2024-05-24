@@ -10,6 +10,14 @@ ORIGINAL_ENTRANCE=entrance
 ORIGINAL_USERNAME=username
 ORIGINAL_PASSWORD=password
 
+# 检查是否是root用户，避免多次要求输入密码
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "此脚本需要以root身份运行。"
+        exit 1
+    fi
+}
+
 function usage() {
     echo "1Panel 控制脚本"
     echo
@@ -31,44 +39,45 @@ function usage() {
     echo "  restore             恢复 1Panel 服务及数据"
 }
 function status() {
-    echo -e "1panel is:"
-    /etc/init.d/1panel status
+    service 1panel status
 }
 function start() {
-    /etc/init.d/1panel start
-    echo -e "1panel is:"
-    /etc/init.d/1panel status
+    service 1panel start && echo "1Panel 服务已启动。"  || systemctl start 1panel.service
 }
 function stop() {
-    /etc/init.d/1panel stop
-    echo -e "1panel is:"
-    /etc/init.d/1panel status
+    service 1panel stop && echo "1Panel 服务已停止。" || systemctl stop 1panel.service
 }
 function restart() {
-    /etc/init.d/1panel restart
-    echo -e "1panel is:"
-    /etc/init.d/1panel status
+    service 1panel restart && echo "1Panel 服务已重启。" || systemctl restart 1panel.service
 }
 function uninstall() {
+    check_root
     read -p "卸载将会完全清除 1Panel 服务和数据目录，是否继续 [y/n] : " yn
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
         echo -e "================== 开始卸载 1Panel Linux 服务器运维管理面板 =================="
         echo -e ""
         echo -e "1) 停止 1Panel 服务进程..."
-        /etc/init.d/1panel stop
+        if which busybox &>/dev/null;then
+            service 1panel stop
+            echo -e "2) 删除 1Panel 服务和数据目录..."
+            rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} 
+            echo -e "3) 禁用并删除服务配置文件..."
+            /etc/init.d/1panel disable 
+            rm -rf /etc/init.d/1panel
+        else
+            systemctl stop 1panel.service
+            systemctl disable 1panel.service >/dev/null 2>&1
+            echo -e "2) 删除 1Panel 服务和数据目录..."
+            rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service
+            echo -e "3) 重新加载服务配置文件..."
+            systemctl daemon-reload
+            systemctl reset-failed
+        fi
+        echo -e ""
+        echo -e "================================== 卸载完成 =================================="
     else
         exit 0
     fi
-
-    echo -e "2) 删除 1Panel 服务和数据目录..."
-    rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} 
-
-    echo -e "3) 重新加载服务配置文件..."
-    /etc/init.d/1panel disable
-    rm -rf /etc/init.d/1panel
-
-    echo -e ""
-    echo -e "================================== 卸载完成 =================================="
 }
 function user-info() {
     1panel user-info
@@ -89,7 +98,7 @@ function restore() {
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
         echo -e ""
         1panel restore
-        /etc/init.d/1panel reload
+        service 1panel reload
         restart
         echo -e ""
         1panel version
