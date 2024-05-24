@@ -176,6 +176,7 @@ function Install_Compose(){
             fi
             chmod +x /usr/local/bin/docker-compose
             ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+        fi
 
         docker-compose version >/dev/null 2>&1
         if [[ $? -ne 0 ]]; then
