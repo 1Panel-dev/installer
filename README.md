@@ -8,11 +8,16 @@
 
 另外基于1panel-V1.10.1-lts源码，以修改tar命令适配busybox运行环境，打包生成在openwrt中运行的1panel二进制文件，可到仓库[wrt1panel](https://github.com/gcsong023/wrt1panel)选择、查看；
 
+## 2024-5-25 更新说明
+
+1、修改quick_start.sh、install.sh及1pctl脚本，**适配通用linux系统及busybox环境的安装及使用**；
+
+
 ## 使用前须知
 
 WRT固件版本繁多，官方原版[openwrt](https://openwrt.org)及[Imortalwrt](https://downloads.immortalwrt.org/)版本或其他支持在线升级安装软件包的固件，请先安装docker，docker-compose；不具备docker且不支持在线安装docker的固件，在未更换固件的情况夏，可直接放弃安装尝试；
 
-## 执行如下命令在openwrt中一键安装 1Panel:
+## 执行如下命令一键安装 1Panel:
 ```sh
 curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/quick_start.sh -o quick_start.sh && bash quick_start.sh
 ```
