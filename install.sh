@@ -66,7 +66,7 @@ function Install_Docker(){
     if which docker >/dev/null 2>&1; then
         log "检测到 Docker 已安装，跳过安装步骤"
         log "启动 Docker "
-        if [[ $(which busybox &>/dev/null && service dockerd start && service dockerd status 2>&1 || systemctl start dockder && systemctl status docker 2>&1) == *running* ]]; then
+        if [[ $(which busybox &>/dev/null && service dockerd start && service dockerd status 2>&1 || systemctl start docker && systemctl status docker 2>&1) == *running* ]]; then
             log "Docker 服务启动成功!"
 
         else
