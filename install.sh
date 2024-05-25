@@ -9,9 +9,9 @@ LOG_FILE=${CURRENT_DIR}/install.log
 PASSWORD_MASK="**********"
 
 function log() {
-    message="[1Panel Log]: $1 "
-    echo -e "\033[32m${message}\033[0m"
-    echo -e "${message}" 2>&1 | tee -a ${LOG_FILE}
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    message="[1Panel ${timestamp} install Log]: $1 "
+    echo -e "\033[32m ${message}\033[0m" 2>&1 | tee -a ${LOG_FILE}
 }
 
 echo
@@ -61,15 +61,22 @@ function Set_Dir(){
         log "(设置超时，使用默认安装路径 /opt)"
     fi
 }
-# 使用的openwrt 固件，需已安装docker && docker-compose 
+
 function Install_Docker(){
     if which docker >/dev/null 2>&1; then
         log "检测到 Docker 已安装，跳过安装步骤"
         log "启动 Docker "
-        systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        if [[ $(which busybox &>/dev/null && service dockerd start && service dockerd status 2>&1 || systemctl start dockder && systemctl status docker 2>&1) == *running* ]]; then
+            log "Docker 服务启动成功!"
+
+        else
+            log "Docker 服务启动失败，安装完成后，请尝试手动启动Docker！"
+
+        fi
     else
         log "... 在线安装 docker"
         if  command -v opkg &>/dev/null;then
+            log "... 当前为busybox环境，尝试使用 opkg 安装 docker"
             opkg update
             opkg install luci-i18n-dockerman-zh-cn
             opkg install zoneinfo-asia
@@ -114,23 +121,16 @@ function Install_Docker(){
                     echo "选择延迟最低的源 $selected_source，延迟为 $min_delay 秒"
                     export DOWNLOAD_URL="$selected_source"
                     curl -fsSL "https://get.docker.com" -o get-docker.sh
-                    sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+                    sh get-docker.sh 2>&1 | tee -a ${LOG_FILE}
 
                     log "... 启动 docker"
-                    systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
+                    systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${LOG_FILE}
 
                     docker_config_folder="/etc/docker"
                     if [[ ! -d "$docker_config_folder" ]];then
                         mkdir -p "$docker_config_folder"
                     fi
 
-                    docker version >/dev/null 2>&1
-                    if [[ $? -ne 0 ]]; then
-                        log "docker 安装失败"
-                        exit 1
-                    else
-                        log "docker 安装成功"
-                    fi
                 else
                     log "无法选择源进行安装"
                     exit 1
@@ -139,24 +139,25 @@ function Install_Docker(){
                 log "非中国大陆地区，无需更改源"
                 export DOWNLOAD_URL="https://download.docker.com"
                 curl -fsSL "https://get.docker.com" -o get-docker.sh
-                sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+                sh get-docker.sh 2>&1 | tee -a ${LOG_FILE}
 
                 log "... 启动 docker"
-                systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
+                systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${LOG_FILE}
 
                 docker_config_folder="/etc/docker"
                 if [[ ! -d "$docker_config_folder" ]];then
                     mkdir -p "$docker_config_folder"
                 fi
-
-                docker version >/dev/null 2>&1
-                if [[ $? -ne 0 ]]; then
-                    log "docker 安装失败"
-                    exit 1
-                else
-                    log "docker 安装成功"
-                fi
             fi
+        fi
+
+        docker version >/dev/null 2>&1
+        if [[ $? -ne 0 ]]; then
+            log "docker 安装失败"
+            exit 1
+        else
+            log "docker 安装成功"
+                
         fi
     fi
 }
@@ -166,6 +167,7 @@ function Install_Compose(){
     if [[ $? -ne 0 ]]; then
         log "... 在线安装 docker-compose"
         if which opkg &>/dev/null;then
+            log "... 当前环境为busybox，尝试使用 opkg 安装 docker-compose"
             opkg update || log "软件包更新失败，请检查网络或稍后重试"
             opkg install docker-compose
         else
@@ -173,7 +175,7 @@ function Install_Compose(){
             if [ "$arch" == 'armv7l' ]; then
                 arch='armv7'
             fi
-            curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-$arch -o /usr/local/bin/docker-compose 2>&1 | tee -a ${CURRENT_DIR}/install.log
+            curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-$arch -o /usr/local/bin/docker-compose 2>&1 | tee -a ${LOG_FILE}
             if [[ ! -f /usr/local/bin/docker-compose ]];then
                 log "docker-compose 下载失败，请稍候重试"
                 exit 1
@@ -304,9 +306,6 @@ function Set_Password(){
     done
 }
 
-secure_password() {
-    echo "$1" | sed 's/[!@#$%*_,.?]/\\&/g'
-}
 install_and_configure() {
     cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel
     ln -s /usr/local/bin/1panel /usr/bin/1panel >/dev/null 2>&1
@@ -314,19 +313,32 @@ install_and_configure() {
     sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_PORT=.*#ORIGINAL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_USERNAME=.*#ORIGINAL_USERNAME=${PANEL_USERNAME}#g" /usr/local/bin/1pctl
-    ESCAPED_PANEL_PASSWORD=$(secure_password "$PANEL_PASSWORD")
-    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PANEL_PASSWORD}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
 
     if which busybox &>/dev/null; then
-        curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/etc/init.d/1panel -o /etc/init.d/1panel
+        echo "#!/bin/sh /etc/rc.common
+USE_PROCD=1
+
+START=95
+STOP=15
+NAME=1panel
+start_service() {
+    procd_open_instance
+    procd_set_param command 1panel
+    procd_set_param stdout 0 # 默认设置不输出系统日志，如为1，在系统日志可看到1panel前端响应信息
+    procd_set_param stderr 1
+    procd_close_instance
+    }
+" > /etc/init.d/1panel
+        # curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/etc/init.d/1panel -o /etc/init.d/1panel
         chmod +x /etc/init.d/1panel
-        /etc/init.d/1panel enable && /etc/init.d/1panel reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
-        /etc/init.d/1panel start | tee -a ${CURRENT_DIR}/install.log
+        /etc/init.d/1panel enable && /etc/init.d/1panel reload 2>&1 | tee -a ${LOG_FILE}
+        /etc/init.d/1panel start | tee -a ${LOG_FILE}
     else
         cp ./1panel.service /etc/systemd/system
-        systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
-        systemctl start 1panel | tee -a ${CURRENT_DIR}/install.log
+        systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a ${LOG_FILE}
+        systemctl start 1panel | tee -a ${LOG_FILE}
     fi
 }
 
@@ -343,7 +355,7 @@ function Init_Panel(){
 
     for b in {1..30}
     do
-        sleep 3
+        sleep 2
         if [[ $(which busybox &>/dev/null && /etc/init.d/1panel status 2>&1 || systemctl status 1panel 2>&1) == *running* ]]; then
             log "1Panel 服务启动成功!"
             break
@@ -391,7 +403,7 @@ function Show_Result(){
     log "内网地址: http://$LOCAL_IP:$PANEL_PORT/$PANEL_ENTRANCE"
     log "面板用户: $PANEL_USERNAME"
     log "面板密码: $PANEL_PASSWORD"
-    log "密码仅显示一次，如遗忘请使用'1pctl update password '重置！"
+    log "密码仅显示一次，如遗忘请使用 1pctl update password 重置！"
     log "项目官网: https://1panel.cn"
     log "项目文档: https://1panel.cn/docs"
     log "代码仓库: https://github.com/1Panel-dev/1Panel"
