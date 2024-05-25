@@ -5,9 +5,13 @@ CURRENT_DIR=$(
     pwd
 )
 
+LOG_FILE=${CURRENT_DIR}/install.log
+PASSWORD_MASK="**********"
+
 function log() {
     message="[1Panel Log]: $1 "
-    echo -e "${message}" 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    echo -e "\033[32m${message}\033[0m"
+    echo -e "${message}" 2>&1 | tee -a ${LOG_FILE}
 }
 
 echo
@@ -349,7 +353,7 @@ function Init_Panel(){
         fi
     done
 
-    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=\*\*\*\*\*\*\*\*\*\*#g" /usr/local/bin/1pctl
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl
 }
 
 
@@ -387,7 +391,7 @@ function Show_Result(){
     log "内网地址: http://$LOCAL_IP:$PANEL_PORT/$PANEL_ENTRANCE"
     log "面板用户: $PANEL_USERNAME"
     log "面板密码: $PANEL_PASSWORD"
-    log ""
+    log "密码仅显示一次，如遗忘请使用'1pctl update password '重置！"
     log "项目官网: https://1panel.cn"
     log "项目文档: https://1panel.cn/docs"
     log "代码仓库: https://github.com/1Panel-dev/1Panel"
@@ -395,6 +399,7 @@ function Show_Result(){
     log "如果使用的是云服务器，请至安全组开放 $PANEL_PORT 端口"
     log ""
     log "================================================================"
+    sed -i -e "s#面板密码:.*#面板密码:${PASSWORD_MASK}#g" ${LOG_FILE}
 }
 
 function main(){
