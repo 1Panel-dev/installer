@@ -169,7 +169,7 @@ function Install_Compose(){
             if [ "$arch" == 'armv7l' ]; then
                 arch='armv7'
             fi
-            curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.22.0/docker-compose-$(uname -s | tr A-Z a-z)-$arch -o /usr/local/bin/docker-compose 2>&1 | tee -a ${CURRENT_DIR}/install.log
+            curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-$arch -o /usr/local/bin/docker-compose 2>&1 | tee -a ${CURRENT_DIR}/install.log
             if [[ ! -f /usr/local/bin/docker-compose ]];then
                 log "docker-compose 下载失败，请稍候重试"
                 exit 1
@@ -300,64 +300,75 @@ function Set_Password(){
     done
 }
 
+secure_password() {
+    echo "$1" | sed 's/[!@#$%*_,.?]/\\&/g'
+}
+install_and_configure() {
+    cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel
+    ln -s /usr/local/bin/1panel /usr/bin/1panel >/dev/null 2>&1
+    cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
+    sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
+    sed -i -e "s#ORIGINAL_PORT=.*#ORIGINAL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
+    sed -i -e "s#ORIGINAL_USERNAME=.*#ORIGINAL_USERNAME=${PANEL_USERNAME}#g" /usr/local/bin/1pctl
+    ESCAPED_PANEL_PASSWORD=$(secure_password "$PANEL_PASSWORD")
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
+    sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
+
+    if which busybox &>/dev/null; then
+        curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/etc/init.d/1panel -o /etc/init.d/1panel
+        chmod +x /etc/init.d/1panel
+        /etc/init.d/1panel enable && /etc/init.d/1panel reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        /etc/init.d/1panel start | tee -a ${CURRENT_DIR}/install.log
+    else
+        cp ./1panel.service /etc/systemd/system
+        systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        systemctl start 1panel | tee -a ${CURRENT_DIR}/install.log
+    fi
+}
+
 function Init_Panel(){
     log "配置 1Panel Service"
 
     RUN_BASE_DIR=$PANEL_BASE_DIR/1panel
     mkdir -p $RUN_BASE_DIR
-    rm -rf $RUN_BASE_DIR/*
+    rm -rf $RUN_BASE_DIR/* 2>/dev/null
 
     cd ${CURRENT_DIR}
-    mkdir -p /usr/local/bin 
-    cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel
-    if [[ ! -f /usr/bin/1panel ]]; then
-        ln -s /usr/local/bin/1panel /usr/bin/1panel >/dev/null 2>&1
-    fi
 
-    cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
-    sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
-    sed -i -e "s#ORIGINAL_PORT=.*#ORIGINAL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
-    sed -i -e "s#ORIGINAL_USERNAME=.*#ORIGINAL_USERNAME=${PANEL_USERNAME}#g" /usr/local/bin/1pctl
-    ESCAPED_PANEL_PASSWORD=$(echo "$PANEL_PASSWORD" | sed 's/[!@#$%*_,.?]/\\&/g')
-    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
-    PANEL_ENTRANCE=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
-    sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
-    if [[ ! -f /usr/bin/1pctl ]]; then
-        ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
-    fi
-
-    # cp ./1panel.service /etc/systemd/system
-    curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/etc/init.d/1panel -o /etc/init.d/1panel
-    chmod +x /etc/init.d/1panel
-
-    /etc/init.d/1panel enable && /etc/init.d/1panel reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
-
-    log "启动 1Panel 服务"
-    /etc/init.d/1panel start | tee -a ${CURRENT_DIR}/install.log
+    install_and_configure
 
     for b in {1..30}
     do
         sleep 3
-        service_status=`/etc/init.d/1panel status 2>&1 | grep -e running`
-        if [[ $service_status == running ]];then
+        if [[ $(which busybox &>/dev/null && /etc/init.d/1panel status 2>&1 || systemctl status 1panel 2>&1) == *running* ]]; then
             log "1Panel 服务启动成功!"
-            break;
+            break
         else
             log "1Panel 服务启动出错!"
             exit 1
         fi
     done
+
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=\*\*\*\*\*\*\*\*\*\*#g" /usr/local/bin/1pctl
 }
+
 
 function Get_Ip(){
     active_interface=$(ip route get 8.8.8.8 | awk 'NR==1 {print $5}')
+    PUBLIC_IP=`curl -s https://api64.ipify.org`
     if [[ -z $active_interface ]]; then
         LOCAL_IP="127.0.0.1"
+    elif [[ $active_interface =~ pppoe ]]; then
+        PUBLIC_IP=$(ip -4 addr show dev "$active_interface" |  grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}')
+        LOCAL_IP=$(ip -4 addr show | grep -E 'br-lan.*' | grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}')
     else
-        LOCAL_IP=`ip -4 addr show dev "$active_interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}'`
+        if which busybox &>/dev/null;then
+            LOCAL_IP=$(ip -4 addr show | grep -E 'br-lan.*' | grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}' | awk -F '/' '{print $1}')
+        else
+            LOCAL_IP=`ip -4 addr show dev "$active_interface" |  grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}'`
+        fi
     fi
 
-    PUBLIC_IP=`curl -s https://api64.ipify.org`
     if [[ -z "$PUBLIC_IP" ]]; then
         PUBLIC_IP="N/A"
     fi
