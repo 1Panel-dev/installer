@@ -313,7 +313,8 @@ install_and_configure() {
     sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_PORT=.*#ORIGINAL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_USERNAME=.*#ORIGINAL_USERNAME=${PANEL_USERNAME}#g" /usr/local/bin/1pctl
-    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PANEL_PASSWORD}#g" /usr/local/bin/1pctl
+    ESCAPED_PANEL_PASSWORD=$(echo "$PANEL_PASSWORD" | sed 's/[!@#$%*_,.?]/\\&/g')
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
 
     if which busybox &>/dev/null; then
@@ -337,14 +338,14 @@ start_service() {
         /etc/init.d/1panel start | tee -a ${LOG_FILE}
     else
         cp ./1panel.service /etc/systemd/system
-        systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a ${LOG_FILE}
-        systemctl start 1panel | tee -a ${LOG_FILE}
+        systemctl enable 1panel.service; systemctl daemon-reload 2>&1 | tee -a ${LOG_FILE}
+        systemctl start 1panel.service | tee -a ${LOG_FILE}
     fi
 }
 
 function Init_Panel(){
     log "配置 1Panel Service"
-
+    MAX_ATTEMPTS=5
     RUN_BASE_DIR=$PANEL_BASE_DIR/1panel
     mkdir -p $RUN_BASE_DIR
     rm -rf $RUN_BASE_DIR/* 2>/dev/null
@@ -353,15 +354,19 @@ function Init_Panel(){
 
     install_and_configure
 
-    for b in {1..30}
-    do
-        sleep 2
-        if [[ $(which busybox &>/dev/null && /etc/init.d/1panel status 2>&1 || systemctl status 1panel 2>&1) == *running* ]]; then
+    for attempt in $(seq 1 $MAX_ATTEMPTS); do
+        if [[ $(command -v busybox) && $(/etc/init.d/1panel status 2>&1) == *running* ]] || \
+        [[ $(command -v systemctl) && $(systemctl status 1panel 2>&1) =~ Active.*running ]]; then
             log "1Panel 服务启动成功!"
             break
         else
-            log "1Panel 服务启动出错!"
-            exit 1
+            if [ $attempt -eq $MAX_ATTEMPTS ]; then
+                log "1Panel 服务启动出错! 尝试次数已达上限。"
+                exit 1
+            else
+                log "1Panel 服务尚未启动，将在 $((MAX_ATTEMPTS - attempt)) 秒后重试。"
+                sleep 2
+            fi
         fi
     done
 
