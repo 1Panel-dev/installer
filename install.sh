@@ -266,6 +266,25 @@ function Set_Firewall(){
     fi
 }
 
+function Set_Entrance(){
+    DEFAULT_ENTRANCE=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
+
+    while true; do
+	    read -p "设置 1Panel 安全入口（默认为$DEFAULT_ENTRANCE）：" PANEL_ENTRANCE
+	    if [[ "$PANEL_ENTRANCE" == "" ]]; then
+    	    PANEL_ENTRANCE=$DEFAULT_ENTRANCE
+    	fi
+
+    	if [[ ! "$PANEL_ENTRANCE" =~ ^[a-zA-Z0-9_]{3,30}$ ]]; then
+            echo "错误：面板安全入口仅支持字母、数字、下划线，长度 3-30 位"
+            continue
+    	fi
+    
+        log "您设置的面板安全入口为：$PANEL_ENTRANCE"
+    	break
+    done
+}
+
 function Set_Username(){
     DEFAULT_USERNAME=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
 
@@ -427,6 +446,7 @@ function main(){
     Install_Compose
     Set_Port
     Set_Firewall
+    Set_Entrance
     Set_Username
     Set_Password
     Init_Panel
