@@ -10,8 +10,8 @@
 
 ## 2024-5-25 更新说明
 
-1、修改quick_start.sh、install.sh及1pctl脚本，**适配通用linux系统及busybox环境的安装及使用**；
-
+1、更新quick_start.sh、install.sh及1pctl脚本，**适配通用linux系统及busybox环境的安装及使用**；
+2、修改install.sh脚本，**支持ImmortalWrt固件在线安装docker与docker-compose**，其他固件未测试；
 
 ## 使用前须知
 
