@@ -328,6 +328,7 @@ init_configure() {
     cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel
     ln -s /usr/local/bin/1panel /usr/bin/1panel >/dev/null 2>&1
     cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
+    ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
     sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_PORT=.*#ORIGINAL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_USERNAME=.*#ORIGINAL_USERNAME=${PANEL_USERNAME}#g" /usr/local/bin/1pctl
