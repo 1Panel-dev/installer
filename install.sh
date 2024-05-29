@@ -324,8 +324,7 @@ function Set_Password(){
         break
     done
 }
-
-install_and_configure() {
+init_configure() {
     cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel
     ln -s /usr/local/bin/1panel /usr/bin/1panel >/dev/null 2>&1
     cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
@@ -335,8 +334,11 @@ install_and_configure() {
     ESCAPED_PANEL_PASSWORD=$(echo "$PANEL_PASSWORD" | sed 's/[!@#$%*_,.?]/\\&/g')
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
-
+    }
+install_and_configure() {
     if which busybox &>/dev/null; then
+        mkdir -p /usr/local/bin
+	init_configure
         echo "#!/bin/sh /etc/rc.common
 USE_PROCD=1
 
@@ -356,6 +358,7 @@ start_service() {
         /etc/init.d/1panel enable && /etc/init.d/1panel reload 2>&1 | tee -a ${LOG_FILE}
         /etc/init.d/1panel start | tee -a ${LOG_FILE}
     else
+    	init_configure
         cp ./1panel.service /etc/systemd/system
         systemctl enable 1panel.service; systemctl daemon-reload 2>&1 | tee -a ${LOG_FILE}
         systemctl start 1panel.service | tee -a ${LOG_FILE}
