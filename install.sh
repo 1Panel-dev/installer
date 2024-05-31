@@ -393,7 +393,7 @@ function Init_Panel(){
         fi
     done
 
-    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl
+    
 }
 
 
@@ -440,6 +440,7 @@ function Show_Result(){
     log ""
     log "================================================================"
     sed -i -e "s#面板密码:.*#面板密码:${PASSWORD_MASK}#g" ${LOG_FILE}
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl
 }
 
 function main(){
