@@ -34,7 +34,7 @@ download_file() {
 1panel_installer() {
     tar zxvf ${package_file_name}
     cd 1panel-${VERSION}-linux-${architecture}
-    if which busybox &>/dev/null;then
+    if which opkg &>/dev/null;then
         download_file https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/install.sh install.sh
         download_file https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/1pctl 1pctl
         sed -i "s/ORIGINAL_VERSION=v1.0.0/ORIGINAL_VERSION=${VERSION}/g" 1pctl
