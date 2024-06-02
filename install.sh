@@ -66,7 +66,7 @@ function Install_Docker(){
     if which docker >/dev/null 2>&1; then
         log "检测到 Docker 已安装，跳过安装步骤"
         log "启动 Docker "
-        if [[ $(which busybox &>/dev/null && service dockerd start && service dockerd status 2>&1 || systemctl start docker && systemctl status docker 2>&1) == *running* ]]; then
+        if [[ $(which opkg &>/dev/null && service dockerd start && service dockerd status 2>&1 || systemctl start docker && systemctl status docker 2>&1) == *running* ]]; then
             log "Docker 服务启动成功!"
 
         else
@@ -337,7 +337,7 @@ init_configure() {
     sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
     }
 install_and_configure() {
-    if which busybox &>/dev/null; then
+    if which opkg &>/dev/null; then
         mkdir -p /usr/local/bin
 	init_configure
         echo "#!/bin/sh /etc/rc.common
@@ -378,7 +378,7 @@ function Init_Panel(){
     install_and_configure
 
     for attempt in $(seq 1 $MAX_ATTEMPTS); do
-        if [[ $(command -v busybox) && $(/etc/init.d/1panel status 2>&1) == *running* ]] || \
+        if [[ $(command -v opkg) && $(/etc/init.d/1panel status 2>&1) == *running* ]] || \
         [[ $(command -v systemctl) && $(systemctl status 1panel 2>&1) =~ Active.*running ]]; then
             log "1Panel 服务启动成功!"
             break
@@ -406,7 +406,7 @@ function Get_Ip(){
         PUBLIC_IP=$(ip -4 addr show dev "$active_interface" |  grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}')
         LOCAL_IP=$(ip -4 addr show | grep -E 'br-lan.*' | grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}')
     else
-        if which busybox &>/dev/null;then
+        if which opkg &>/dev/null;then
             LOCAL_IP=$(ip -4 addr show | grep -E 'br-lan.*' | grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}' | awk -F '/' '{print $1}')
         else
             LOCAL_IP=`ip -4 addr show dev "$active_interface" |  grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}'`
