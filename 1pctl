@@ -57,7 +57,7 @@ function uninstall() {
         echo -e "================== 开始卸载 1Panel Linux 服务器运维管理面板 =================="
         echo -e ""
         echo -e "1) 停止 1Panel 服务进程..."
-        if which busybox &>/dev/null;then
+        if which opkg &>/dev/null;then
             service 1panel stop
             echo -e "2) 删除 1Panel 服务和数据目录..."
             rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} 
