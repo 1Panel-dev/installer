@@ -160,6 +160,7 @@ function install_panel() {
     if [ "$BRANCH" == "2" ]; then
         download_file https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/install.sh install.sh
         download_file https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/1pctl 1pctl
+        sedsed -i "s/ORIGINAL_VERSION=v1.0.0/ORIGINAL_VERSION=${VERSION}/g" 1pctl
     fi
     chmod +x install.sh && chmod +x 1panel && chmod +x 1pctl
     /bin/bash install.sh
