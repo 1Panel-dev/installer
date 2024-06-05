@@ -32,7 +32,7 @@ curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/q
 ```
 ### x86_amd64平台openwrt可尝试使用以下命令安装基于官方V1.10.1-lts源码的修改版本(一键安装脚本已支持自动安装选定）：
 
-~~wget https://github.com/gcsong023/wrt1panel/releases/download/v1.10.9-lts/1panel-v1.10.9-lts-linux-amd64.tar.gz  && tar zxvf 1panel-v1.10.9-lts-linux-amd64.tar.gz && cd 1panel-v1.10.9-lts-linux-amd64 && bash install.sh  
+~~wget https://github.com/gcsong023/wrt1panel/releases/download/v1.10.9-lts/1panel-v1.10.9-lts-linux-amd64.tar.gz  && tar zxvf 1panel-v1.10.9-lts-linux-amd64.tar.gz && cd 1panel-v1.10.9-lts-linux-amd64 && bash install.sh~~
 
 ### 或尝试替换1panel二进制文件方式
 ```sh
