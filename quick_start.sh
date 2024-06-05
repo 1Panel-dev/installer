@@ -144,7 +144,7 @@ function package_verify() {
     else
         # echo "已存在安装包，检查哈希值..."
         actual_hash=$(sha256sum "$package_file_name" | awk '{print $1}')
-        expected_hash=$(curl -s "$hash_file_url" | grep "$package_file_name" | awk '{print $1}')
+        expected_hash=$(curl -sSL "$hash_file_url" | grep "$package_file_name" | awk '{print $1}')
         if [[ "$expected_hash" == "$actual_hash" ]]; then
             echo "安装包已存在且哈希值匹配，跳过下载"
         else
