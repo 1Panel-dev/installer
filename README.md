@@ -8,23 +8,14 @@
 
 另外基于1panel-V1.10.1-lts源码，以修改tar命令适配busybox运行环境，打包生成在openwrt中运行的1panel二进制文件，可到仓库[wrt1panel](https://github.com/gcsong023/wrt1panel)选择、查看；
 
-## 2024-6-5 更新说明
-
-1、更新quick_start.sh、install.sh，**支持根据环境设定默认选择安装包版本**；
-
-### 2024-6-5 安装版本选择说明
-
-1.wrt1panel仓库最新版：为基于1panel 1.10.1-lts源码修改版本；
-2.1panel最新版：为官方1panel 发布的最新版本；
-
-## 2024-5-25 更新说明
-
-1、更新quick_start.sh、install.sh及1pctl脚本，**适配通用linux系统及busybox环境的安装及使用**；
-2、修改install.sh脚本，**支持ImmortalWrt固件在线安装docker与docker-compose**，其他固件未测试；
 
 ## 使用前须知
 
 WRT固件版本繁多，官方原版[openwrt](https://openwrt.org)及[Imortalwrt](https://downloads.immortalwrt.org/)版本或其他支持在线升级安装软件包的固件，请先安装docker，docker-compose；不具备docker且不支持在线安装docker的固件，在未更换固件的情况夏，可直接放弃安装尝试；
+### 2024-6-5 安装版本选择说明
+
+1.wrt1panel仓库最新版：为基于1panel 1.10.1-lts源码修改版本；
+2.1panel最新版：为官方1panel 发布的最新版本；
 
 ## 执行如下命令一键安装 1Panel:
 ```sh
@@ -38,6 +29,15 @@ curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/q
 ```sh
 cp $pwd/1panel /usr/local/bin/1panel # 手动替换1panel二进制文件方式 $pwd 为压缩文件解压后目录。
 ```
+## 2024-6-5 更新说明
+
+1、更新quick_start.sh、install.sh，**支持根据环境设定默认选择安装包版本**；
+
+## 2024-5-25 更新说明
+
+1、更新quick_start.sh、install.sh及1pctl脚本，**适配通用linux系统及busybox环境的安装及使用**；
+2、修改install.sh脚本，**支持ImmortalWrt固件在线安装docker与docker-compose**，其他固件未测试；
+
 ### 可能存在的问题：
 *1、-ash: curl: not found  bash: not found 出现这类问题的原因是，所使用的openwrt版本，未安装curl  bash 命令 ；*
 
