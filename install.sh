@@ -74,6 +74,15 @@ function Install_Docker(){
                 "https://mirrors.cernet.edu.cn/docker-ce"
             )
 
+            docker_install_scripts=(
+                "https://get.docker.com"
+                "https://testingcf.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                "https://cdn.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                "https://fastly.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                "https://gcore.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                "https://raw.githubusercontent.com/docker/docker-install/master/install.sh"
+            )
+
             get_average_delay() {
                 local source=$1
                 local total_delay=0
@@ -103,7 +112,25 @@ function Install_Docker(){
             if [ -n "$selected_source" ]; then
                 echo "选择延迟最低的源 $selected_source，延迟为 $min_delay 秒"
                 export DOWNLOAD_URL="$selected_source"
-                curl -fsSL "https://get.docker.com" -o get-docker.sh
+                
+                # 从备选链接中尝试下载脚本
+                for alt_source in "${docker_install_scripts[@]}"; do
+                    log "尝试从备选链接 $alt_source 下载 Docker 安装脚本..."
+                    if curl -fsSL --retry 3 --retry-delay 5 --connect-timeout 10 --max-time 60 "$alt_source" -o get-docker.sh; then
+                        log "成功从 $alt_source 下载安装脚本"
+                        break
+                    else
+                        log "从 $alt_source 下载安装脚本失败，尝试下一个备选链接"
+                    fi
+                done
+                
+                # 如果无法从备选链接中下载脚本
+                if [ ! -f "get-docker.sh" ]; then
+                    echo "所有下载尝试都失败了。您可以尝试手动安装 Docker，运行以下命令："
+                    echo "bash <(curl -sSL https://linuxmirrors.cn/docker.sh)"
+                    exit 1
+                fi
+
                 sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
 
                 log "... 启动 docker"
