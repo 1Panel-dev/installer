@@ -113,10 +113,9 @@ function Install_Docker(){
                 echo "选择延迟最低的源 $selected_source，延迟为 $min_delay 秒"
                 export DOWNLOAD_URL="$selected_source"
                 
-                # 从备选链接中尝试下载脚本
                 for alt_source in "${docker_install_scripts[@]}"; do
                     log "尝试从备选链接 $alt_source 下载 Docker 安装脚本..."
-                    if curl -fsSL --retry 3 --retry-delay 5 --connect-timeout 10 --max-time 60 "$alt_source" -o get-docker.sh; then
+                    if curl -fsSL --retry 2 --retry-delay 3 --connect-timeout 5 --max-time 10 "$alt_source" -o get-docker.sh; then
                         log "成功从 $alt_source 下载安装脚本"
                         break
                     else
@@ -124,7 +123,6 @@ function Install_Docker(){
                     fi
                 done
                 
-                # 如果无法从备选链接中下载脚本
                 if [ ! -f "get-docker.sh" ]; then
                     echo "所有下载尝试都失败了。您可以尝试手动安装 Docker，运行以下命令："
                     echo "bash <(curl -sSL https://linuxmirrors.cn/docker.sh)"
