@@ -141,7 +141,7 @@ function Install_Docker(){
 
                 docker version >/dev/null 2>&1
                 if [[ $? -ne 0 ]]; then
-                    log "docker 安装失败"
+                    log "docker 安装失败\n您可以尝试使用安装包进行安装，具体安装步骤请参考以下链接：https://1panel.cn/docs/installation/package_installation/"
                     exit 1
                 else
                     log "docker 安装成功"
@@ -166,7 +166,7 @@ function Install_Docker(){
 
             docker version >/dev/null 2>&1
             if [[ $? -ne 0 ]]; then
-                log "docker 安装失败"
+                log "docker 安装失败\n您可以尝试使用安装包进行安装，具体安装步骤请参考以下链接：https://1panel.cn/docs/installation/package_installation/"
                 exit 1
             else
                 log "docker 安装成功"
