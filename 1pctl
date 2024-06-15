@@ -62,8 +62,8 @@ function uninstall() {
             echo -e "2) 删除 1Panel 服务和数据目录..."
             rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} 
             echo -e "3) 禁用并删除服务配置文件..."
-            /etc/init.d/1panel disable 
-            rm -rf /etc/init.d/1panel
+            /etc/init.d/1paneld disable 
+            rm -rf /etc/init.d/1paneld
         else
             systemctl stop 1panel.service
             systemctl disable 1panel.service >/dev/null 2>&1

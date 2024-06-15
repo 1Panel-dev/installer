@@ -353,11 +353,11 @@ start_service() {
     procd_set_param stderr 1
     procd_close_instance
     }
-" > /etc/init.d/1panel
-        # curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/etc/init.d/1panel -o /etc/init.d/1panel
-        chmod +x /etc/init.d/1panel
-        /etc/init.d/1panel enable && /etc/init.d/1panel reload 2>&1 | tee -a ${LOG_FILE}
-        /etc/init.d/1panel start | tee -a ${LOG_FILE}
+" > /etc/init.d/1paneld
+        # curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/etc/init.d/1paneld -o /etc/init.d/1paneld
+        chmod +x /etc/init.d/1paneld
+        /etc/init.d/1paneld enable && /etc/init.d/1paneld reload 2>&1 | tee -a ${LOG_FILE}
+        /etc/init.d/1paneld start | tee -a ${LOG_FILE}
     else
     	init_configure
         cp ./1panel.service /etc/systemd/system
@@ -378,7 +378,7 @@ function Init_Panel(){
     install_and_configure
 
     for attempt in $(seq 1 $MAX_ATTEMPTS); do
-        if [[ $(command -v opkg) && $(/etc/init.d/1panel status 2>&1) == *running* ]] || \
+        if [[ $(command -v opkg) && $(/etc/init.d/1paneld status 2>&1) == *running* ]] || \
         [[ $(command -v systemctl) && $(systemctl status 1panel 2>&1) =~ Active.*running ]]; then
             log "1Panel 服务启动成功!"
             break
