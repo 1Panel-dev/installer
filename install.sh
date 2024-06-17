@@ -1,13 +1,32 @@
 #!/bin/bash
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
 CURRENT_DIR=$(
-    cd "$(dirname "$0")"
+    cd "$(dirname "$0")" || exit
     pwd
 )
 
 function log() {
     message="[1Panel Log]: $1 "
-    echo -e "${message}" 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    case "$1" in
+        *"失败"*|*"错误"*|*"请使用 root 或 sudo 权限运行此脚本"*)
+            echo -e "${RED}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            ;;
+        *"成功"*)
+            echo -e "${GREEN}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            ;;
+        *"忽略"*|*"跳过"*)
+            echo -e "${YELLOW}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            ;;
+        *)
+            echo -e "${BLUE}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            ;;
+    esac
 }
 
 echo
@@ -24,7 +43,7 @@ log "======================= 开始安装 ======================="
 
 function Check_Root() {
     if [[ $EUID -ne 0 ]]; then
-        echo "请使用 root 或 sudo 权限运行此脚本"
+        log "请使用 root 或 sudo 权限运行此脚本"
         exit 1
     fi
 }
@@ -45,7 +64,7 @@ function Set_Dir(){
             fi
 
             if [[ ! -d $PANEL_BASE_DIR ]];then
-                mkdir -p $PANEL_BASE_DIR
+                mkdir -p "$PANEL_BASE_DIR"
                 log "您选择的安装路径为 $PANEL_BASE_DIR"
             fi
         else
@@ -62,7 +81,7 @@ function Install_Docker(){
     if which docker >/dev/null 2>&1; then
         log "检测到 Docker 已安装，跳过安装步骤"
         log "启动 Docker "
-        systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
+        systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
     else
         log "... 在线安装 docker"
 
@@ -132,7 +151,7 @@ function Install_Docker(){
                 sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
 
                 log "... 启动 docker"
-                systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
+                systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
 
                 docker_config_folder="/etc/docker"
                 if [[ ! -d "$docker_config_folder" ]];then
@@ -154,10 +173,10 @@ function Install_Docker(){
             log "非中国大陆地区，无需更改源"
             export DOWNLOAD_URL="https://download.docker.com"
             curl -fsSL "https://get.docker.com" -o get-docker.sh
-            sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+            sh get-docker.sh 2>&1 | tee -a "${CURRENT_DIR}"/install.log
 
             log "... 启动 docker"
-            systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${CURRENT_DIR}/install.log
+            systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
 
             docker_config_folder="/etc/docker"
             if [[ ! -d "$docker_config_folder" ]];then
@@ -184,7 +203,7 @@ function Install_Compose(){
 		if [ "$arch" == 'armv7l' ]; then
 			arch='armv7'
 		fi
-		curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-$arch -o /usr/local/bin/docker-compose 2>&1 | tee -a ${CURRENT_DIR}/install.log
+		curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-"$arch" -o /usr/local/bin/docker-compose 2>&1 | tee -a "${CURRENT_DIR}"/install.log
         if [[ ! -f /usr/local/bin/docker-compose ]];then
             log "docker-compose 下载失败，请稍候重试"
             exit 1
@@ -200,7 +219,7 @@ function Install_Compose(){
             log "docker-compose 安装成功"
         fi
     else
-        compose_v=`docker-compose -v`
+        compose_v=$(docker-compose -v)
         if [[ $compose_v =~ 'docker-compose' ]];then
             read -p "检测到已安装 Docker Compose 版本较低（需大于等于 v2.0.0 版本），是否升级 [y/n] : " UPGRADE_DOCKER_COMPOSE
             if [[ "$UPGRADE_DOCKER_COMPOSE" == "Y" ]] || [[ "$UPGRADE_DOCKER_COMPOSE" == "y" ]]; then
@@ -216,7 +235,7 @@ function Install_Compose(){
 }
 
 function Set_Port(){
-    DEFAULT_PORT=`expr $RANDOM % 55535 + 10000`
+    DEFAULT_PORT=$(expr $RANDOM % 55535 + 10000)
 
     while true; do
         read -p "设置 1Panel 端口（默认为$DEFAULT_PORT）：" PANEL_PORT
@@ -226,18 +245,18 @@ function Set_Port(){
         fi
 
         if ! [[ "$PANEL_PORT" =~ ^[1-9][0-9]{0,4}$ && "$PANEL_PORT" -le 65535 ]]; then
-            echo "错误：输入的端口号必须在 1 到 65535 之间"
+            log "错误：输入的端口号必须在 1 到 65535 之间"
             continue
         fi
 
         if command -v ss >/dev/null 2>&1; then
             if ss -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-                echo "端口$PANEL_PORT被占用，请重新输入..."
+                log "端口$PANEL_PORT被占用，请重新输入..."
                 continue
             fi
         elif command -v netstat >/dev/null 2>&1; then
             if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-                echo "端口$PANEL_PORT被占用，请重新输入..."
+                log "端口$PANEL_PORT被占用，请重新输入..."
                 continue
             fi
         fi
@@ -251,7 +270,7 @@ function Set_Firewall(){
     if which firewall-cmd >/dev/null 2>&1; then
         if systemctl status firewalld | grep -q "Active: active" >/dev/null 2>&1;then
             log "防火墙开放 $PANEL_PORT 端口"
-            firewall-cmd --zone=public --add-port=$PANEL_PORT/tcp --permanent
+            firewall-cmd --zone=public --add-port="$PANEL_PORT"/tcp --permanent
             firewall-cmd --reload
         else
             log "防火墙未开启，忽略端口开放"
@@ -261,7 +280,7 @@ function Set_Firewall(){
     if which ufw >/dev/null 2>&1; then
         if systemctl status ufw | grep -q "Active: active" >/dev/null 2>&1;then
             log "防火墙开放 $PANEL_PORT 端口"
-            ufw allow $PANEL_PORT/tcp
+            ufw allow "$PANEL_PORT"/tcp
             ufw reload
         else
             log "防火墙未开启，忽略端口开放"
@@ -289,7 +308,7 @@ function Set_Entrance(){
 }
 
 function Set_Username(){
-    DEFAULT_USERNAME=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
+    DEFAULT_USERNAME=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
 
     while true; do
         read -p "设置 1Panel 面板用户（默认为$DEFAULT_USERNAME）：" PANEL_USERNAME
@@ -299,7 +318,7 @@ function Set_Username(){
         fi
 
         if [[ ! "$PANEL_USERNAME" =~ ^[a-zA-Z0-9_]{3,30}$ ]]; then
-            echo "错误：面板用户仅支持字母、数字、下划线，长度 3-30 位"
+            log "错误：面板用户仅支持字母、数字、下划线，长度 3-30 位"
             continue
         fi
 
@@ -309,17 +328,17 @@ function Set_Username(){
 }
 
 function Set_Password(){
-    DEFAULT_PASSWORD=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
+    DEFAULT_PASSWORD=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
 
     while true; do
-        echo "设置 1Panel 面板密码（默认为$DEFAULT_PASSWORD）："
+        log "设置 1Panel 面板密码（默认为$DEFAULT_PASSWORD）："
         read -s PANEL_PASSWORD
         if [[ "$PANEL_PASSWORD" == "" ]];then
             PANEL_PASSWORD=$DEFAULT_PASSWORD
         fi
 
         if [[ ! "$PANEL_PASSWORD" =~ ^[a-zA-Z0-9_!@#$%*,.?]{8,30}$ ]]; then
-            echo "错误：面板密码仅支持字母、数字、特殊字符（!@#$%*_,.?），长度 8-30 位"
+            log "错误：面板密码仅支持字母、数字、特殊字符（!@#$%*_,.?），长度 8-30 位"
             continue
         fi
 
@@ -331,10 +350,10 @@ function Init_Panel(){
     log "配置 1Panel Service"
 
     RUN_BASE_DIR=$PANEL_BASE_DIR/1panel
-    mkdir -p $RUN_BASE_DIR
-    rm -rf $RUN_BASE_DIR/*
+    mkdir -p "$RUN_BASE_DIR"
+    rm -rf "$RUN_BASE_DIR:?/*" # :? 是检查机制，用于确保 $RUN_BASE_DIR 变量已经设置并且不为空。如果变量未设置或为空,将打印一条错误消息。
 
-    cd ${CURRENT_DIR}
+    cd "${CURRENT_DIR}" || exit
 
     cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel
     if [[ ! -f /usr/bin/1panel ]]; then
@@ -354,15 +373,15 @@ function Init_Panel(){
 
     cp ./1panel.service /etc/systemd/system
 
-    systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a ${CURRENT_DIR}/install.log
+    systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a "${CURRENT_DIR}"/install.log
 
     log "启动 1Panel 服务"
-    systemctl start 1panel | tee -a ${CURRENT_DIR}/install.log
+    systemctl start 1panel | tee -a "${CURRENT_DIR}"/install.log
 
     for b in {1..30}
     do
         sleep 3
-        service_status=`systemctl status 1panel 2>&1 | grep Active`
+        service_status=$(systemctl status 1panel 2>&1 | grep Active)
         if [[ $service_status == *running* ]];then
             log "1Panel 服务启动成功!"
             break;
@@ -379,10 +398,10 @@ function Get_Ip(){
     if [[ -z $active_interface ]]; then
         LOCAL_IP="127.0.0.1"
     else
-        LOCAL_IP=`ip -4 addr show dev "$active_interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}'`
+        LOCAL_IP=$(ip -4 addr show dev "$active_interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
     fi
 
-    PUBLIC_IP=`curl -s https://api64.ipify.org`
+    PUBLIC_IP=$(curl -s https://api64.ipify.org)
     if [[ -z "$PUBLIC_IP" ]]; then
         PUBLIC_IP="N/A"
     fi
