@@ -94,7 +94,7 @@ function Install_Docker(){
             )
 
             docker_install_scripts=(
-                "https://get.docker.com"
+                "https://resource.fit2cloud.com/get-docker-linux.sh"
                 "https://testingcf.jsdelivr.net/gh/docker/docker-install@master/install.sh"
                 "https://cdn.jsdelivr.net/gh/docker/docker-install@master/install.sh"
                 "https://fastly.jsdelivr.net/gh/docker/docker-install@master/install.sh"
