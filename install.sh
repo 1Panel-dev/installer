@@ -351,7 +351,7 @@ function Init_Panel(){
 
     RUN_BASE_DIR=$PANEL_BASE_DIR/1panel
     mkdir -p "$RUN_BASE_DIR"
-    rm -rf "$RUN_BASE_DIR:?/*" # :? 是检查机制，用于确保 $RUN_BASE_DIR 变量已经设置并且不为空。如果变量未设置或为空,将打印一条错误消息。
+    rm -rf "$RUN_BASE_DIR:?/*"
 
     cd "${CURRENT_DIR}" || exit
 
