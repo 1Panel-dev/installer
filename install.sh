@@ -105,28 +105,33 @@ function Install_Docker(){
             get_average_delay() {
                 local source=$1
                 local total_delay=0
-                local iterations=3
-
+                local iterations=2
+                local timeout=2
+    
                 for ((i = 0; i < iterations; i++)); do
-                    delay=$(curl -o /dev/null -s -w "%{time_total}\n" "$source")
+                    delay=$(curl -o /dev/null -s -m $timeout -w "%{time_total}\n" "$source")
+                    if [ $? -ne 0 ]; then
+                        delay=$timeout
+                    fi
                     total_delay=$(awk "BEGIN {print $total_delay + $delay}")
                 done
-
+    
                 average_delay=$(awk "BEGIN {print $total_delay / $iterations}")
                 echo "$average_delay"
             }
-
-            min_delay=${#sources[@]}
+    
+            min_delay=99999999
             selected_source=""
-
+    
             for source in "${sources[@]}"; do
-                average_delay=$(get_average_delay "$source")
-
+                average_delay=$(get_average_delay "$source" &)
+    
                 if (( $(awk 'BEGIN { print '"$average_delay"' < '"$min_delay"' }') )); then
                     min_delay=$average_delay
                     selected_source=$source
                 fi
             done
+            wait
 
             if [ -n "$selected_source" ]; then
                 echo "选择延迟最低的源 $selected_source，延迟为 $min_delay 秒"
