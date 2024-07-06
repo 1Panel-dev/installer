@@ -14,13 +14,13 @@ CURRENT_DIR=$(
 function log() {
     message="[1Panel Log]: $1 "
     case "$1" in
-        *"失败"*|*"错误"*|*"请使用 root 或 sudo 权限运行此脚本"*)
+        *"Failed"*|*"Error"*|*"Either run this script as root user or use the sudo command"*)
             echo -e "${RED}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
             ;;
-        *"成功"*)
+        *"Success"*)
             echo -e "${GREEN}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
             ;;
-        *"忽略"*|*"跳过"*)
+        *"Ignore"*|*"Skip"*)
             echo -e "${YELLOW}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
             ;;
         *)
@@ -39,51 +39,51 @@ cat << EOF
  ╚═╝    ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝
 EOF
 
-log "======================= 开始安装 ======================="
+log "======================= Installing 1PANEL ======================="
 
 function Check_Root() {
     if [[ $EUID -ne 0 ]]; then
-        log "请使用 root 或 sudo 权限运行此脚本"
+        log "Either run this script as root user or use the sudo command"
         exit 1
     fi
 }
 
 function Prepare_System(){
     if which 1panel >/dev/null 2>&1; then
-        log "1Panel Linux 服务器运维管理面板已安装，请勿重复安装"
+        log "1Panel Server Management Panel Has been Installed. Please do not reinstall."
         exit 1
     fi
 }
 
 function Set_Dir(){
-    if read -t 120 -p "设置 1Panel 安装目录（默认为/opt）：" PANEL_BASE_DIR;then
+    if read -t 120 -p "Set the 1Panel root directory（default /opt）：" PANEL_BASE_DIR;then
         if [[ "$PANEL_BASE_DIR" != "" ]];then
             if [[ "$PANEL_BASE_DIR" != /* ]];then
-                log "请输入目录的完整路径"
+                log "Please enter the full path of the directory"
                 Set_Dir
             fi
 
             if [[ ! -d $PANEL_BASE_DIR ]];then
                 mkdir -p "$PANEL_BASE_DIR"
-                log "您选择的安装路径为 $PANEL_BASE_DIR"
+                log "The 1Panel root directory you selected is $PANEL_BASE_DIR"
             fi
         else
             PANEL_BASE_DIR=/opt
-            log "您选择的安装路径为 $PANEL_BASE_DIR"
+            log "The 1Panel root directory you selected is $PANEL_BASE_DIR"
         fi
     else
         PANEL_BASE_DIR=/opt
-        log "(设置超时，使用默认安装路径 /opt)"
+        log "(Timeout, Using the default root directory /opt)"
     fi
 }
 
 function Install_Docker(){
     if which docker >/dev/null 2>&1; then
-        log "检测到 Docker 已安装，跳过安装步骤"
-        log "启动 Docker "
+        log "Docker is already installed, skipping this step."
+        log "Starting Docker service"
         systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
     else
-        log "... 在线安装 docker"
+        log "... Installing docker"
 
         if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
             sources=(
@@ -134,28 +134,28 @@ function Install_Docker(){
             wait
 
             if [ -n "$selected_source" ]; then
-                echo "选择延迟最低的源 $selected_source，延迟为 $min_delay 秒"
+                echo "Select the source with lowest latency $selected_source，Latency is $min_delay ms"
                 export DOWNLOAD_URL="$selected_source"
                 
                 for alt_source in "${docker_install_scripts[@]}"; do
-                    log "尝试从备选链接 $alt_source 下载 Docker 安装脚本..."
+                    log "Trying from alternative source $alt_source Downloading Docker installation script..."
                     if curl -fsSL --retry 2 --retry-delay 3 --connect-timeout 5 --max-time 10 "$alt_source" -o get-docker.sh; then
-                        log "成功从 $alt_source 下载安装脚本"
+                        log "Downloaded Successfully from $alt_source"
                         break
                     else
-                        log "从 $alt_source 下载安装脚本失败，尝试下一个备选链接"
+                        log "Failed to download from $alt_source Try another source."
                     fi
                 done
                 
                 if [ ! -f "get-docker.sh" ]; then
-                    echo "所有下载尝试都失败了。您可以尝试手动安装 Docker，运行以下命令："
+                    echo "All download attempts failed. You can try to install Docker manually, by running the following command："
                     echo "bash <(curl -sSL https://linuxmirrors.cn/docker.sh)"
                     exit 1
                 fi
 
                 sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
 
-                log "... 启动 docker"
+                log "... Enabling docker service"
                 systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
 
                 docker_config_folder="/etc/docker"
@@ -165,17 +165,17 @@ function Install_Docker(){
 
                 docker version >/dev/null 2>&1
                 if [[ $? -ne 0 ]]; then
-                    log "docker 安装失败\n您可以尝试使用安装包进行安装，具体安装步骤请参考以下链接：https://1panel.cn/docs/installation/package_installation/"
+                    log "docker Installation failed\nYou can try to install using the installation package. Please refer to the docs for installation steps：https://1panel.cn/docs/installation/package_installation/"
                     exit 1
                 else
-                    log "docker 安装成功"
+                    log "docker successfully installed"
                 fi
             else
-                log "无法选择源进行安装"
+                log "unable to select source for installation"
                 exit 1
             fi
         else
-            log "非中国大陆地区，无需更改源"
+            log "Located outside of China, skipping modified sources."
             export DOWNLOAD_URL="https://download.docker.com"
             curl -fsSL "https://get.docker.com" -o get-docker.sh
             sh get-docker.sh 2>&1 | tee -a "${CURRENT_DIR}"/install.log
@@ -190,10 +190,10 @@ function Install_Docker(){
 
             docker version >/dev/null 2>&1
             if [[ $? -ne 0 ]]; then
-                log "docker 安装失败\n您可以尝试使用安装包进行安装，具体安装步骤请参考以下链接：https://1panel.cn/docs/installation/package_installation/"
+                log "docker Installation failed\nYou can try to install using the installation package. Please refer to the docs for installation steps：https://1panel.cn/docs/installation/package_installation/"
                 exit 1
             else
-                log "docker 安装成功"
+                log "docker successfully installed"
             fi
         fi
     fi
@@ -202,7 +202,7 @@ function Install_Docker(){
 function Install_Compose(){
     docker-compose version >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
-        log "... 在线安装 docker-compose"
+        log "... Installing docker-compose"
         
         arch=$(uname -m)
 		if [ "$arch" == 'armv7l' ]; then
@@ -210,7 +210,7 @@ function Install_Compose(){
 		fi
 		curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-"$arch" -o /usr/local/bin/docker-compose 2>&1 | tee -a "${CURRENT_DIR}"/install.log
         if [[ ! -f /usr/local/bin/docker-compose ]];then
-            log "docker-compose 下载失败，请稍候重试"
+            log "docker-compose download failed, please try again"
             exit 1
         fi
         chmod +x /usr/local/bin/docker-compose
@@ -218,23 +218,23 @@ function Install_Compose(){
 
         docker-compose version >/dev/null 2>&1
         if [[ $? -ne 0 ]]; then
-            log "docker-compose 安装失败"
+            log "docker-compose installation failed"
             exit 1
         else
-            log "docker-compose 安装成功"
+            log "docker-compose successfully installed"
         fi
     else
         compose_v=$(docker-compose -v)
         if [[ $compose_v =~ 'docker-compose' ]];then
-            read -p "检测到已安装 Docker Compose 版本较低（需大于等于 v2.0.0 版本），是否升级 [y/n] : " UPGRADE_DOCKER_COMPOSE
+            read -p "Detected outdated version of Docker Compose (need to be greater than or equal to v2.0.0). Would you like to upgrade? [y/n] : " UPGRADE_DOCKER_COMPOSE
             if [[ "$UPGRADE_DOCKER_COMPOSE" == "Y" ]] || [[ "$UPGRADE_DOCKER_COMPOSE" == "y" ]]; then
                 rm -rf /usr/local/bin/docker-compose /usr/bin/docker-compose
                 Install_Compose
             else
-                log "Docker Compose 版本为 $compose_v，可能会影响应用商店的正常使用"
+                log "Docker Compose version is $compose_v, which may affect the normal use of 1Panel Apps."
             fi
         else
-            log "检测到 Docker Compose 已安装，跳过安装步骤"
+            log "Docker Compose is already installed, skipping the installation"
         fi
     fi
 }
@@ -243,30 +243,30 @@ function Set_Port(){
     DEFAULT_PORT=$(expr $RANDOM % 55535 + 10000)
 
     while true; do
-        read -p "设置 1Panel 端口（默认为$DEFAULT_PORT）：" PANEL_PORT
+        read -p "Set 1Panel Port（Default is $DEFAULT_PORT）：" PANEL_PORT
 
         if [[ "$PANEL_PORT" == "" ]];then
             PANEL_PORT=$DEFAULT_PORT
         fi
 
         if ! [[ "$PANEL_PORT" =~ ^[1-9][0-9]{0,4}$ && "$PANEL_PORT" -le 65535 ]]; then
-            log "错误：输入的端口号必须在 1 到 65535 之间"
+            log "Error: The port number entered must be between 1 to 65535"
             continue
         fi
 
         if command -v ss >/dev/null 2>&1; then
             if ss -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-                log "端口$PANEL_PORT被占用，请重新输入..."
+                log "Port $PANEL_PORT is occupied, please re-enter..."
                 continue
             fi
         elif command -v netstat >/dev/null 2>&1; then
             if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-                log "端口$PANEL_PORT被占用，请重新输入..."
+                log "Port $PANEL_PORT is occupied, please re-enter..."
                 continue
             fi
         fi
 
-        log "您设置的端口为：$PANEL_PORT"
+        log "1Panel port：$PANEL_PORT"
         break
     done
 }
@@ -274,21 +274,21 @@ function Set_Port(){
 function Set_Firewall(){
     if which firewall-cmd >/dev/null 2>&1; then
         if systemctl status firewalld | grep -q "Active: active" >/dev/null 2>&1;then
-            log "防火墙开放 $PANEL_PORT 端口"
+            log "Opening Port $PANEL_PORT for in Firewalld 1Panel"
             firewall-cmd --zone=public --add-port="$PANEL_PORT"/tcp --permanent
             firewall-cmd --reload
         else
-            log "防火墙未开启，忽略端口开放"
+            log "Firewalld is not installed, skipping port opening."
         fi
     fi
 
     if which ufw >/dev/null 2>&1; then
         if systemctl status ufw | grep -q "Active: active" >/dev/null 2>&1;then
-            log "防火墙开放 $PANEL_PORT 端口"
+            log "Opening Port $PANEL_PORT in ufw for 1Panel"
             ufw allow "$PANEL_PORT"/tcp
             ufw reload
         else
-            log "防火墙未开启，忽略端口开放"
+            log "ufw is not installed, skipping port opening."
         fi
     fi
 }
@@ -297,17 +297,17 @@ function Set_Entrance(){
     DEFAULT_ENTRANCE=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
 
     while true; do
-	    read -p "设置 1Panel 安全入口（默认为$DEFAULT_ENTRANCE）：" PANEL_ENTRANCE
+	    read -p "Set 1Panel secure entrance（default is $DEFAULT_ENTRANCE）：" PANEL_ENTRANCE
 	    if [[ "$PANEL_ENTRANCE" == "" ]]; then
     	    PANEL_ENTRANCE=$DEFAULT_ENTRANCE
     	fi
 
     	if [[ ! "$PANEL_ENTRANCE" =~ ^[a-zA-Z0-9_]{3,30}$ ]]; then
-            echo "错误：面板安全入口仅支持字母、数字、下划线，长度 3-30 位"
+            echo "Error: The panel secure entrance only supports letters, numbers, and underscores, with a length of 3-30 characters"
             continue
     	fi
     
-        log "您设置的面板安全入口为：$PANEL_ENTRANCE"
+        log "1Panel secure entrance：$PANEL_ENTRANCE"
     	break
     done
 }
@@ -316,18 +316,18 @@ function Set_Username(){
     DEFAULT_USERNAME=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
 
     while true; do
-        read -p "设置 1Panel 面板用户（默认为$DEFAULT_USERNAME）：" PANEL_USERNAME
+        read -p "Set 1Panel username（Default $DEFAULT_USERNAME）：" PANEL_USERNAME
 
         if [[ "$PANEL_USERNAME" == "" ]];then
             PANEL_USERNAME=$DEFAULT_USERNAME
         fi
 
         if [[ ! "$PANEL_USERNAME" =~ ^[a-zA-Z0-9_]{3,30}$ ]]; then
-            log "错误：面板用户仅支持字母、数字、下划线，长度 3-30 位"
+            log "Error: username only support letters, numbers, and underscores, with a length of 3-30 characters."
             continue
         fi
 
-        log "您设置的面板用户为：$PANEL_USERNAME"
+        log "1Panel username：$PANEL_USERNAME"
         break
     done
 }
@@ -336,14 +336,14 @@ function Set_Password(){
     DEFAULT_PASSWORD=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
 
     while true; do
-        log "设置 1Panel 面板密码（默认为$DEFAULT_PASSWORD）："
+        log "set 1Panel password（default $DEFAULT_PASSWORD）："
         read -s PANEL_PASSWORD
         if [[ "$PANEL_PASSWORD" == "" ]];then
             PANEL_PASSWORD=$DEFAULT_PASSWORD
         fi
 
         if [[ ! "$PANEL_PASSWORD" =~ ^[a-zA-Z0-9_!@#$%*,.?]{8,30}$ ]]; then
-            log "错误：面板密码仅支持字母、数字、特殊字符（!@#$%*_,.?），长度 8-30 位"
+            log "Error: The panel password only supports letters, numbers, and special characters (!@#$%*_,.?), with a length of 8-30 characters"
             continue
         fi
 
@@ -352,7 +352,7 @@ function Set_Password(){
 }
 
 function Init_Panel(){
-    log "配置 1Panel Service"
+    log "Configuring 1Panel Service"
 
     RUN_BASE_DIR=$PANEL_BASE_DIR/1panel
     mkdir -p "$RUN_BASE_DIR"
@@ -388,10 +388,10 @@ function Init_Panel(){
         sleep 3
         service_status=$(systemctl status 1panel 2>&1 | grep Active)
         if [[ $service_status == *running* ]];then
-            log "1Panel 服务启动成功!"
+            log "1Panel service started successfully!"
             break;
         else
-            log "1Panel 服务启动出错!"
+            log "1Panel service failed to start!"
             exit 1
         fi
     done
@@ -418,21 +418,21 @@ function Get_Ip(){
 
 function Show_Result(){
     log ""
-    log "=================感谢您的耐心等待，安装已经完成=================="
+    log "=================Thank you for your patience, the installation has been completed=================="
     log ""
-    log "请用浏览器访问面板:"
-    log "外网地址: http://$PUBLIC_IP:$PANEL_PORT/$PANEL_ENTRANCE"
-    log "内网地址: http://$LOCAL_IP:$PANEL_PORT/$PANEL_ENTRANCE"
-    log "面板用户: $PANEL_USERNAME"
-    log "面板密码: $PANEL_PASSWORD"
+    log "Please use your browser to access the panel:"
+    log "Internet address: http://$PUBLIC_IP:$PANEL_PORT/$PANEL_ENTRANCE"
+    log "Intranet address: http://$LOCAL_IP:$PANEL_PORT/$PANEL_ENTRANCE"
+    log "username: $PANEL_USERNAME"
+    log "password: $PANEL_PASSWORD"
     log ""
-    log "项目官网: https://1panel.cn"
-    log "项目文档: https://1panel.cn/docs"
-    log "代码仓库: https://github.com/1Panel-dev/1Panel"
+    log "Official Website: https://1panel.cn"
+    log "Documentation: https://1panel.cn/docs"
+    log "GitHub: https://github.com/1Panel-dev/1Panel"
     log ""
-    log "如果使用的是云服务器，请至安全组开放 $PANEL_PORT 端口"
+    log "If you are using a cloud server, please open the $PANEL_PORT port in the security policy"
     log ""
-    log "为了您的服务器安全，在您离开此界面后您将无法再看到您的密码，请务必牢记您的密码。"
+    log "For the security of your server, you will no longer be able to see your password after you leave this interface. Please be sure to remember your password."
     log ""
     log "================================================================"
 }
