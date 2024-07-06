@@ -11,24 +11,24 @@ ORIGINAL_USERNAME=username
 ORIGINAL_PASSWORD=password
 
 function usage() {
-    echo "1Panel 控制脚本"
+    echo "1Panel Control Script"
     echo
     echo "Usage: "
     echo "  ./1pctl [COMMAND] [ARGS...]"
     echo "  ./1pctl --help"
     echo
     echo "Commands: "
-    echo "  status              查看 1Panel 服务运行状态"
-    echo "  start               启动 1Panel 服务"
-    echo "  stop                停止 1Panel 服务"
-    echo "  restart             重启 1Panel 服务"
-    echo "  uninstall           卸载 1Panel 服务"
-    echo "  user-info           获取 1Panel 用户信息"
-    echo "  listen-ip           切换 1Panel 监听 IP"
-    echo "  version             查看 1Panel 版本信息"
-    echo "  update              修改 1Panel 系统信息"
-    echo "  reset               重置 1Panel 系统信息"
-    echo "  restore             恢复 1Panel 服务及数据"
+    echo "  status              Check 1Panel service status"
+    echo "  start               Start 1Panel service"
+    echo "  stop                Stop 1Panel service"
+    echo "  restart             Restart 1Panel service"
+    echo "  uninstall           Remove 1Panel service"
+    echo "  user-info           Get 1Panel user information"
+    echo "  listen-ip           switch 1Panel IP"
+    echo "  version             View 1Panel version info"
+    echo "  update              Update 1Panel data"
+    echo "  reset               Rest 1Panel date"
+    echo "  restore             Restore 1Panel services and data"
 }
 function status() {
     systemctl status 1panel.service
@@ -46,26 +46,26 @@ function restart() {
     status
 }
 function uninstall() {
-    read -p "卸载将会完全清除 1Panel 服务和数据目录，是否继续 [y/n] : " yn
+    read -p "This option will completely remove 1Panel service and related files, are you sure you want to continue? [y/n] : " yn
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
-        echo -e "================== 开始卸载 1Panel Linux 服务器运维管理面板 =================="
+        echo -e "================== Removing 1Panel Linux server management panel =================="
         echo -e ""
-        echo -e "1) 停止 1Panel 服务进程..."
+        echo -e "1) Stopping 1Panel service..."
         systemctl stop 1panel.service
         systemctl disable 1panel.service >/dev/null 2>&1
     else
         exit 0
     fi
 
-    echo -e "2) 删除 1Panel 服务和数据目录..."
+    echo -e "2) Removing 1Panel service and related files..."
     rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service
 
-    echo -e "3) 重新加载服务配置文件..."
+    echo -e "3) Reloading the service manager..."
     systemctl daemon-reload
     systemctl reset-failed
 
     echo -e ""
-    echo -e "================================== 卸载完成 =================================="
+    echo -e "================================== 1Panel Removed =================================="
 }
 function user-info() {
     1panel user-info
@@ -82,7 +82,7 @@ function listen_ipv6() {
     restart
 }
 function restore() {
-    read -p "1Panel 将会恢复至上一个稳定版本，是否继续 [y/n] : " yn
+    read -p "1Panel will be restored to last version, are you sure you want to continue? [y/n] : " yn
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
         echo -e ""
         1panel restore
@@ -216,7 +216,7 @@ function main() {
             usage
             ;;
         *)
-        echo "不支持的参数，请使用 help 或 --help 参数获取帮助"
+        echo "Invalid argument, please use help or --help to print the help menu"
     esac
 }
 main
