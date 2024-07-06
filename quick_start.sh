@@ -13,7 +13,7 @@ elif [[ $osCheck =~ 'ppc64le' ]];then
 elif [[ $osCheck =~ 's390x' ]];then
     architecture="s390x"
 else
-    echo "暂不支持的系统架构，请参阅官方文档，选择受支持的系统。"
+    echo "For system architectures that are not currently supported, please refer to the official documentation to select a supported system."
     exit 1
 fi
 
@@ -21,7 +21,7 @@ if [[ ! ${INSTALL_MODE} ]];then
 	INSTALL_MODE="stable"
 else
     if [[ ${INSTALL_MODE} != "dev" && ${INSTALL_MODE} != "stable" ]];then
-        echo "请输入正确的安装模式（dev or stable）"
+        echo "Please enter the correct installation mode（dev or stable）"
         exit 1
     fi
 fi
@@ -30,7 +30,7 @@ VERSION=$(curl -s https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/
 HASH_FILE_URL="https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/${VERSION}/release/checksums.txt"
 
 if [[ "x${VERSION}" == "x" ]];then
-    echo "获取最新版本失败，请稍候重试"
+    echo "Failed to get the latest version, please try again later."
     exit 1
 fi
 
@@ -48,24 +48,24 @@ if [ -f ${package_file_name} ];then
         /bin/bash install.sh
         exit 0
     else
-        echo "已存在安装包，但是哈希值不一致，开始重新下载"
+        echo "The installation package already exists, but the hash values ​​are inconsistent. Redownloading the package."
         rm -f ${package_file_name}
     fi
 fi
 
-echo "开始下载 1Panel ${VERSION} 版本在线安装包"
-echo "安装包下载地址： ${package_download_url}"
+echo "Downloading the 1Panel ${VERSION} version installation package"
+echo "Installation package download address： ${package_download_url}"
 
 curl -LOk -o ${package_file_name} ${package_download_url}
 curl -sfL https://resource.fit2cloud.com/installation-log.sh | sh -s 1p install ${VERSION}
 if [ ! -f ${package_file_name} ];then
-	echo "下载安装包失败，请稍候重试。"
+	echo "Failed to download the installation package, please try again later."
 	exit 1
 fi
 
 tar zxvf ${package_file_name}
 if [ $? != 0 ];then
-	echo "下载安装包失败，请稍候重试。"
+	echo "Failed to download the installation package, please try again later."
 	rm -f ${package_file_name}
 	exit 1
 fi
