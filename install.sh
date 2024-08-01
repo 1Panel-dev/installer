@@ -336,7 +336,7 @@ function Set_Password(){
     DEFAULT_PASSWORD=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
 
     while true; do
-        log "设置 1Panel 面板密码（默认为$DEFAULT_PASSWORD）："
+        log "设置 1Panel 面板密码，设置完成后直接回车以继续（默认为$DEFAULT_PASSWORD）："
         read -s PANEL_PASSWORD
         if [[ "$PANEL_PASSWORD" == "" ]];then
             PANEL_PASSWORD=$DEFAULT_PASSWORD
