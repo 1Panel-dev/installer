@@ -28,7 +28,40 @@ function log() {
             ;;
     esac
 }
-
+function passwd() {
+    charcount='0'
+    reply=''
+    while :; do
+        char=$(
+            stty cbreak -echo
+            dd if=/dev/tty bs=1 count=1 2>/dev/null
+            stty -cbreak echo
+        )
+        case $char in
+        #检测空字符 NULL
+        "$(printenv '\000')")
+            break
+            ;;
+        #检测退格符
+        "$(printf '\b')")
+            if [ $charcount -gt 0 ]; then
+                printf '\b \b'
+                reply="${reply%?}"
+                charcount=$((charcount - 1))
+            else
+                printf ''
+            fi
+            ;;
+        "$(printf '\033')") ;;
+        *)
+            printf '*'
+            reply="${reply}${char}"
+            charcount=$((charcount + 1))
+            ;;
+        esac
+    done
+    printf '\n' >&2
+}
 echo
 cat << EOF
  ██╗    ██████╗  █████╗ ███╗   ██╗███████╗██╗     
@@ -337,7 +370,8 @@ function Set_Password(){
 
     while true; do
         log "设置 1Panel 面板密码，设置完成后直接回车以继续（默认为$DEFAULT_PASSWORD）："
-        read -s PANEL_PASSWORD
+        passwd
+        PANEL_PASSWORD=$reply
         if [[ "$PANEL_PASSWORD" == "" ]];then
             PANEL_PASSWORD=$DEFAULT_PASSWORD
         fi
