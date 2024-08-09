@@ -28,40 +28,6 @@ function log() {
             ;;
     esac
 }
-function passwd() {
-    charcount='0'
-    reply=''
-    while :; do
-        char=$(
-            stty cbreak -echo
-            dd if=/dev/tty bs=1 count=1 2>/dev/null
-            stty -cbreak echo
-        )
-        case $char in
-        #检测空字符 NULL
-        "$(printenv '\000')")
-            break
-            ;;
-        #检测退格符
-        "$(printf '\b')")
-            if [ $charcount -gt 0 ]; then
-                printf '\b \b'
-                reply="${reply%?}"
-                charcount=$((charcount - 1))
-            else
-                printf ''
-            fi
-            ;;
-        "$(printf '\033')") ;;
-        *)
-            printf '*'
-            reply="${reply}${char}"
-            charcount=$((charcount + 1))
-            ;;
-        esac
-    done
-    printf '\n' >&2
-}
 echo
 cat << EOF
  ██╗    ██████╗  █████╗ ███╗   ██╗███████╗██╗     
@@ -110,11 +76,43 @@ function Set_Dir(){
     fi
 }
 
+ACCELERATOR_URL="https://docker.1panel.live"
+DAEMON_JSON="/etc/docker/daemon.json"
+BACKUP_FILE="/etc/docker/daemon.json.1panel_bak"
+
+function create_daemon_json() {
+    log "创建新的配置文件 ${DAEMON_JSON}..."
+    mkdir -p /etc/docker
+    echo '{
+        "registry-mirrors": ["'"$ACCELERATOR_URL"'"]
+    }' | tee "$DAEMON_JSON" > /dev/null
+    log "镜像加速配置已添加。"
+}
+
+function configure_accelerator() {
+    read -p "是否配置镜像加速？(y/n): " configure_accelerator
+    if [[ "$configure_accelerator" == "y" ]]; then
+        if [ -f "$DAEMON_JSON" ]; then
+            log "配置文件已存在，我们将备份现有配置文件为 ${BACKUP_FILE} 并创建新的配置文件。"
+            cp "$DAEMON_JSON" "$BACKUP_FILE"
+            create_daemon_json
+        else
+            create_daemon_json
+        fi
+
+        log "正在重启 Docker 服务..."
+        systemctl daemon-reload
+        systemctl restart docker
+        log "Docker 服务已成功重启。"
+    else
+        log "未配置镜像加速。"
+    fi
+}
+
 function Install_Docker(){
     if which docker >/dev/null 2>&1; then
         log "检测到 Docker 已安装，跳过安装步骤"
-        log "启动 Docker "
-        systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+        configure_accelerator
     else
         log "... 在线安装 docker"
 
@@ -167,7 +165,7 @@ function Install_Docker(){
             wait
 
             if [ -n "$selected_source" ]; then
-                echo "选择延迟最低的源 $selected_source，延迟为 $min_delay 秒"
+                log "选择延迟最低的源 $selected_source，延迟为 $min_delay 秒"
                 export DOWNLOAD_URL="$selected_source"
                 
                 for alt_source in "${docker_install_scripts[@]}"; do
@@ -181,27 +179,26 @@ function Install_Docker(){
                 done
                 
                 if [ ! -f "get-docker.sh" ]; then
-                    echo "所有下载尝试都失败了。您可以尝试手动安装 Docker，运行以下命令："
-                    echo "bash <(curl -sSL https://linuxmirrors.cn/docker.sh)"
+                    log "所有下载尝试都失败了。您可以尝试手动安装 Docker，运行以下命令："
+                    log "bash <(curl -sSL https://linuxmirrors.cn/docker.sh)"
                     exit 1
                 fi
 
                 sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
 
-                log "... 启动 docker"
-                systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
-
                 docker_config_folder="/etc/docker"
                 if [[ ! -d "$docker_config_folder" ]];then
                     mkdir -p "$docker_config_folder"
                 fi
-
+                
                 docker version >/dev/null 2>&1
                 if [[ $? -ne 0 ]]; then
-                    log "docker 安装失败\n您可以尝试使用安装包进行安装，具体安装步骤请参考以下链接：https://1panel.cn/docs/installation/package_installation/"
+                    log "docker 安装失败\n您可以尝试使用离线包进行安装，具体安装步骤请参考以下链接：https://1panel.cn/docs/installation/package_installation/"
                     exit 1
                 else
                     log "docker 安装成功"
+                    systemctl enable docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+                    configure_accelerator
                 fi
             else
                 log "无法选择源进行安装"
@@ -336,7 +333,7 @@ function Set_Entrance(){
     	fi
 
     	if [[ ! "$PANEL_ENTRANCE" =~ ^[a-zA-Z0-9_]{3,30}$ ]]; then
-            echo "错误：面板安全入口仅支持字母、数字、下划线，长度 3-30 位"
+            log "错误：面板安全入口仅支持字母、数字、下划线，长度 3-30 位"
             continue
     	fi
     
@@ -363,6 +360,40 @@ function Set_Username(){
         log "您设置的面板用户为：$PANEL_USERNAME"
         break
     done
+}
+
+
+function passwd() {
+    charcount='0'
+    reply=''
+    while :; do
+        char=$(
+            stty cbreak -echo
+            dd if=/dev/tty bs=1 count=1 2>/dev/null
+            stty -cbreak echo
+        )
+        case $char in
+        "$(printenv '\000')")
+            break
+            ;;
+        "$(printf '\177')" | "$(printf '\b')")
+            if [ $charcount -gt 0 ]; then
+                printf '\b \b'
+                reply="${reply%?}"
+                charcount=$((charcount - 1))
+            else
+                printf ''
+            fi
+            ;;
+        "$(printf '\033')") ;;
+        *)
+            printf '*'
+            reply="${reply}${char}"
+            charcount=$((charcount + 1))
+            ;;
+        esac
+    done
+    printf '\n' >&2
 }
 
 function Set_Password(){
