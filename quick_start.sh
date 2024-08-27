@@ -1,27 +1,68 @@
 #!/bin/bash
-#Install Latest Stable 1Panel Release
+# Install Latest Stable 1Panel Release
 
-osCheck=`uname -a`
-if [[ $osCheck =~ 'x86_64' ]];then
+# Language selection setup
+LANG_FILE=".selected_language"
+LANG_DIR="./lang"
+AVAILABLE_LANGS=("en" "fa" "zh")
+
+# Associative array for language names
+declare -A LANG_NAMES
+LANG_NAMES=( ["en"]="English" ["fa"]="Persian" ["zh"]="Chinese" )
+
+# Check if the language is already selected and saved
+if [[ -f $LANG_FILE ]]; then
+    # Load the saved language
+    selected_lang=$(cat "$LANG_FILE")
+    echo "${LANG_ALREADY_SELECTED_MSG} ${LANG_NAMES[$selected_lang]}"
+else
+    # Prompt the user to select a language
+    echo "$LANG_PROMPT_MSG"
+    for i in "${!AVAILABLE_LANGS[@]}"; do
+        lang_code="${AVAILABLE_LANGS[i]}"
+        echo "$((i + 1)). ${LANG_NAMES[$lang_code]}"
+    done
+
+    read -p "$LANG_CHOICE_MSG" lang_choice
+
+    if [[ $lang_choice -ge 1 && $lang_choice -le ${#AVAILABLE_LANGS[@]} ]]; then
+        selected_lang=${AVAILABLE_LANGS[$((lang_choice - 1))]}
+        echo "${LANG_SELECTED_CONFIRM_MSG} ${LANG_NAMES[$selected_lang]}"
+
+        # Save the selected language to the file
+        echo $selected_lang > $LANG_FILE
+    else
+        echo "$LANG_INVALID_MSG"
+        selected_lang="en"
+        echo $selected_lang > $LANG_FILE
+    fi
+fi
+
+# Load the selected language file
+source "$LANG_DIR/$selected_lang.sh"
+
+# Existing script logic
+osCheck=$(uname -a)
+if [[ $osCheck =~ 'x86_64' ]]; then
     architecture="amd64"
-elif [[ $osCheck =~ 'arm64' ]] || [[ $osCheck =~ 'aarch64' ]];then
+elif [[ $osCheck =~ 'arm64' ]] || [[ $osCheck =~ 'aarch64' ]]; then
     architecture="arm64"
-elif [[ $osCheck =~ 'armv7l' ]];then
+elif [[ $osCheck =~ 'armv7l' ]]; then
     architecture="armv7"
-elif [[ $osCheck =~ 'ppc64le' ]];then
+elif [[ $osCheck =~ 'ppc64le' ]]; then
     architecture="ppc64le"
-elif [[ $osCheck =~ 's390x' ]];then
+elif [[ $osCheck =~ 's390x' ]]; then
     architecture="s390x"
 else
-    echo "暂不支持的系统架构，请参阅官方文档，选择受支持的系统。"
+    echo "$SYSTEM_ARCHITECTURE"
     exit 1
 fi
 
-if [[ ! ${INSTALL_MODE} ]];then
-	INSTALL_MODE="stable"
+if [[ ! ${INSTALL_MODE} ]]; then
+    INSTALL_MODE="stable"
 else
-    if [[ ${INSTALL_MODE} != "dev" && ${INSTALL_MODE} != "stable" ]];then
-        echo "请输入正确的安装模式（dev or stable）"
+    if [[ ${INSTALL_MODE} != "dev" && ${INSTALL_MODE} != "stable" ]]; then
+        echo "$INSTALLATIO_MODE"
         exit 1
     fi
 fi
@@ -29,8 +70,8 @@ fi
 VERSION=$(curl -s https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/latest)
 HASH_FILE_URL="https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/${VERSION}/release/checksums.txt"
 
-if [[ "x${VERSION}" == "x" ]];then
-    echo "获取最新版本失败，请稍候重试"
+if [[ "x${VERSION}" == "x" ]]; then
+    echo "$OBTAIN_VERSION_FAIELD"
     exit 1
 fi
 
@@ -38,37 +79,38 @@ package_file_name="1panel-${VERSION}-linux-${architecture}.tar.gz"
 package_download_url="https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/${VERSION}/release/${package_file_name}"
 expected_hash=$(curl -s "$HASH_FILE_URL" | grep "$package_file_name" | awk '{print $1}')
 
-if [ -f ${package_file_name} ];then
+if [[ -f ${package_file_name} ]]; then
     actual_hash=$(sha256sum "$package_file_name" | awk '{print $1}')
-    if [[ "$expected_hash" == "$actual_hash" ]];then
-        echo "安装包已存在，跳过下载"
+    if [[ "$expected_hash" == "$actual_hash" ]]; then
+        echo "$INSTALLATION_PACKAGE_HASH"
         rm -rf 1panel-${VERSION}-linux-${architecture}
         tar zxvf ${package_file_name}
         cd 1panel-${VERSION}-linux-${architecture}
         /bin/bash install.sh
         exit 0
     else
-        echo "已存在安装包，但是哈希值不一致，开始重新下载"
+        echo "$INSTALLATION_PACKAGE_ERROR"
         rm -f ${package_file_name}
     fi
 fi
 
-echo "开始下载 1Panel ${VERSION} 版本在线安装包"
-echo "安装包下载地址： ${package_download_url}"
+echo "$START_DOWNLOADING_PANEL ${VERSION}"
+echo "$INSTALLATION_PACKAGE_DOWNLOAD_ADDRESS ${package_download_url}"
 
 curl -LOk -o ${package_file_name} ${package_download_url}
 curl -sfL https://resource.fit2cloud.com/installation-log.sh | sh -s 1p install ${VERSION}
-if [ ! -f ${package_file_name} ];then
-	echo "下载安装包失败，请稍候重试。"
-	exit 1
+if [[ ! -f ${package_file_name} ]]; then
+    echo "$INSTALLATION_PACKAGE_DOWNLOAD_FAIL"
+    exit 1
 fi
 
 tar zxvf ${package_file_name}
-if [ $? != 0 ];then
-	echo "下载安装包失败，请稍候重试。"
-	rm -f ${package_file_name}
-	exit 1
+if [[ $? != 0 ]]; then
+    echo "$INSTALLATION_PACKAGE_DOWNLOAD_FAIL"
+    rm -f ${package_file_name}
+    exit 1
 fi
+
 cd 1panel-${VERSION}-linux-${architecture}
 
 /bin/bash install.sh
