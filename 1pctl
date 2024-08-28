@@ -10,123 +10,185 @@ ORIGINAL_ENTRANCE=entrance
 ORIGINAL_USERNAME=username
 ORIGINAL_PASSWORD=password
 
+# Language selection setup
+LANG_FILE=".selected_language"
+LANG_DIR="./lang"
+AVAILABLE_LANGS=("en" "fa" "zh")
+
+# Associative array for language names
+declare -A LANG_NAMES
+LANG_NAMES=( ["en"]="English" ["fa"]="Persian" ["zh"]="Chinese" )
+
+# Check if the language is already selected and saved
+if [ -f "$LANG_FILE" ]; then
+    # Load the saved language
+    selected_lang=$(cat "$LANG_FILE")
+    echo "${LANG_ALREADY_SELECTED_MSG} ${LANG_NAMES[$selected_lang]}"
+else
+    # Prompt the user to select a language
+    echo "$LANG_PROMPT_MSG"
+    for i in "${!AVAILABLE_LANGS[@]}"; do
+        lang_code="${AVAILABLE_LANGS[i]}"
+        echo "$((i + 1)). ${LANG_NAMES[$lang_code]}"
+    done
+
+    read -p "$LANG_CHOICE_MSG" lang_choice
+
+    if [[ $lang_choice -ge 1 && $lang_choice -le ${#AVAILABLE_LANGS[@]} ]]; then
+        selected_lang=${AVAILABLE_LANGS[$((lang_choice - 1))]}
+        echo "${LANG_SELECTED_CONFIRM_MSG} ${LANG_NAMES[$selected_lang]}"
+
+        # Save the selected language to the file
+        echo $selected_lang > $LANG_FILE
+    else
+        echo "$LANG_INVALID_MSG"
+        selected_lang="en"
+        echo $selected_lang > $LANG_FILE
+    fi
+fi
+
+# Load the selected language file
+LANGFILE="$LANG_DIR/$selected_lang.sh"
+
+if [ -f "$LANGFILE" ]; then
+    source "$LANGFILE"
+else
+    echo -e "${RED} $LANG_NOT_FOUND_MSG $LANGFILE${NC}"
+    exit 1
+fi
+
+# Define functions for actions
 function usage() {
-    echo "1Panel 控制脚本"
+    echo "$PANEL_CONTROL_SCRIPT"
     echo
     echo "Usage: "
     echo "  ./1pctl [COMMAND] [ARGS...]"
     echo "  ./1pctl --help"
     echo
     echo "Commands: "
-    echo "  status              查看 1Panel 服务运行状态"
-    echo "  start               启动 1Panel 服务"
-    echo "  stop                停止 1Panel 服务"
-    echo "  restart             重启 1Panel 服务"
-    echo "  uninstall           卸载 1Panel 服务"
-    echo "  user-info           获取 1Panel 用户信息"
-    echo "  listen-ip           切换 1Panel 监听 IP"
-    echo "  version             查看 1Panel 版本信息"
-    echo "  update              修改 1Panel 系统信息"
-    echo "  reset               重置 1Panel 系统信息"
-    echo "  restore             恢复 1Panel 服务及数据"
+    echo "  status              $PANEL_SERVICE_STATUS"
+    echo "  start               $PANEL_SERVICE_START"
+    echo "  stop                $PANEL_SERVICE_STOP"
+    echo "  restart             $PANEL_SERVICE_RESTART"
+    echo "  uninstall           $PANEL_SERVICE_UNINSTALL"
+    echo "  user-info           $PANEL_SERVICE_USER_INFO"
+    echo "  listen-ip           $PANEL_SERVICE_LISTEN_IP"
+    echo "  version             $PANEL_SERVICE_VERSION"
+    echo "  update              $PANEL_SERVICE_UPDATE"
+    echo "  reset               $PANEL_SERVICE_RESET"
+    echo "  restore             $PANEL_SERVICE_RESTORE"
 }
+
 function status() {
     systemctl status 1panel.service
 }
+
 function start() {
     systemctl start 1panel.service
     status
 }
+
 function stop() {
     systemctl stop 1panel.service
     status
 }
+
 function restart() {
     systemctl restart 1panel.service
     status
 }
+
 function uninstall() {
-    read -p "卸载将会完全清除 1Panel 服务和数据目录，是否继续 [y/n] : " yn
+    read -p "$PANEL_SERVICE_UNINSTALL_NOTICE : " yn
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
-        echo -e "================== 开始卸载 1Panel Linux 服务器运维管理面板 =================="
-        echo -e ""
-        echo -e "1) 停止 1Panel 服务进程..."
+        echo -e "$PANEL_SERVICE_UNINSTALL_START"
         systemctl stop 1panel.service
         systemctl disable 1panel.service >/dev/null 2>&1
+        echo -e "$PANEL_SERVICE_UNINSTALL_REMOVE"
+        rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service
+        systemctl daemon-reload
+        systemctl reset-failed
+        echo -e "$PANEL_SERVICE_UNINSTALL_SUCCESS"
     else
         exit 0
     fi
-
-    echo -e "2) 删除 1Panel 服务和数据目录..."
-    rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service
-
-    echo -e "3) 重新加载服务配置文件..."
-    systemctl daemon-reload
-    systemctl reset-failed
-
-    echo -e ""
-    echo -e "================================== 卸载完成 =================================="
 }
+
 function user-info() {
     1panel user-info
 }
+
 function listen-ip() {
-    1panel listen-ip
+    case "${target}" in
+        ipv4)
+            1panel listen-ip ipv4
+            restart
+            ;;
+        ipv6)
+            1panel listen-ip ipv6
+            restart
+            ;;
+        *)
+            1panel listen-ip
+            ;;
+    esac
 }
-function listen_ipv4() {
-    1panel listen-ip ipv4
-    restart
-}
-function listen_ipv6() {
-    1panel listen-ip ipv6
-    restart
-}
+
 function restore() {
-    read -p "1Panel 将会恢复至上一个稳定版本，是否继续 [y/n] : " yn
+    read -p "$PANEL_SERVICE_RESTORE_NOTICE : " yn
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
-        echo -e ""
         1panel restore
         systemctl daemon-reload
         restart
-        echo -e ""
         1panel version
     else
         exit 0
     fi
 }
+
 function version() {
     1panel version
 }
+
 function reset() {
-    1panel reset
+    case "${target}" in
+        domain)
+            1panel reset domain
+            ;;
+        entrance)
+            1panel reset entrance
+            ;;
+        https)
+            1panel reset https
+            restart
+            ;;
+        ips)
+            1panel reset ips
+            ;;
+        mfa)
+            1panel reset mfa
+            ;;
+        *)
+            1panel reset
+            ;;
+    esac
 }
-function reset_domain() {
-    1panel reset domain
-}
-function reset_entrance() {
-    1panel reset entrance
-}
-function reset_https() {
-    1panel reset https
-    restart
-}
-function reset_ips() {
-    1panel reset ips
-}
-function reset_mfa() {
-    1panel reset mfa
-}
+
 function update() {
-    1panel update
-}
-function update_username() {
-    1panel update username
-}
-function update_password() {
-    1panel update password
-}
-function update_port() {
-    1panel update port
+    case "${target}" in
+        username)
+            1panel update username
+            ;;
+        password)
+            1panel update password
+            ;;
+        port)
+            1panel update port
+            ;;
+        *)
+            1panel update
+            ;;
+    esac
 }
 
 function main() {
@@ -153,58 +215,16 @@ function main() {
             user-info
             ;;
         listen-ip)
-            case "${target}" in
-                ipv4)
-                    listen_ipv4
-                    ;;
-                ipv6)
-                    listen_ipv6
-                    ;;
-                *)
-                    listen-ip
-                    ;;
-            esac
+            listen-ip
             ;;
         version)
             version
             ;;
         reset)
-            case "${target}" in
-                domain)
-                    reset_domain
-                    ;;
-                entrance)
-                    reset_entrance
-                    ;;
-                https)
-                    reset_https
-                    ;;
-                ips)
-                    reset_ips
-                    ;;
-                mfa)
-                    reset_mfa
-                    ;;
-                *)
-                    reset
-                    ;;
-            esac
+            reset
             ;;
         update)
-            case "${target}" in
-                username)
-                    update_username
-                    ;;
-                password)
-                    update_password
-                    ;;
-                port)
-                    update_port
-                    ;;
-                *)
-                    update
-                    ;;
-            esac
+            update
             ;;
         help)
             usage
@@ -216,7 +236,9 @@ function main() {
             usage
             ;;
         *)
-        echo "不支持的参数，请使用 help 或 --help 参数获取帮助"
+            echo "$PANEL_SERVICE_UNSUPPORTED_PARAMETER"
+            ;;
     esac
 }
+
 main
