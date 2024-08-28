@@ -76,7 +76,7 @@ function Set_Dir(){
     fi
 }
 
-ACCELERATOR_URL="https://docker.1panel.live"
+ACCELERATOR_URL="https://docker.1panelproxy.com"
 DAEMON_JSON="/etc/docker/daemon.json"
 BACKUP_FILE="/etc/docker/daemon.json.1panel_bak"
 
