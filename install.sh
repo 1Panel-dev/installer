@@ -111,7 +111,12 @@ function configure_accelerator() {
 
 function Install_Docker(){
     if which docker >/dev/null 2>&1; then
-        log "检测到 Docker 已安装，跳过安装步骤"
+        docker_version=$(docker --version | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
+        major_version=${docker_version%%.*}
+        minor_version=${docker_version##*.}
+        if [[ $major_version -lt 20 ]]; then
+            log "检测到 Docker 版本为 $docker_version，低于 20.x，可能影响部分功能的正常使用，建议手动升级至更高版本。"
+        fi
         configure_accelerator
     else
         log "... 在线安装 docker"
