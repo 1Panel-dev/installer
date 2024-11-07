@@ -39,16 +39,43 @@ function usage() {
     echo "  restore             恢复 1Panel 服务及数据"
 }
 function status() {
-    service 1paneld status
+    if ! service 1paneld status; then
+        systemctl status 1panel.service
+        if [[ $? -ne 0 ]]; then
+            echo "查询 1Panel 服务状态失败。"
+            exit 1
+        fi
+    fi
 }
 function start() {
-    service 1paneld start && echo "1Panel 服务已启动。"  || systemctl start 1panel.service
+    if ! service 1paneld start; then
+        systemctl start 1panel.service
+        if [[ $? -ne 0 ]]; then
+            echo "启动 1Panel 服务失败。"
+            exit 1
+        fi
+    fi
+    echo "1Panel 服务已启动。"
 }
 function stop() {
-    service 1paneld stop && echo "1Panel 服务已停止。" || systemctl stop 1panel.service
+    if ! service 1paneld stop; then
+        systemctl stop 1panel.service
+        if [[ $? -ne 0 ]]; then
+            echo "停止 1Panel 服务失败。"
+            exit 1
+        fi
+    fi
+    echo "1Panel 服务已停止。"
 }
 function restart() {
-    service 1paneld restart && echo "1Panel 服务已重启。" || systemctl restart 1panel.service
+    if ! service 1paneld restart; then
+        systemctl restart 1panel.service
+        if [[ $? -ne 0 ]]; then
+            echo "重启 1Panel 服务失败。"
+            exit 1
+        fi
+    fi
+    echo "1Panel 服务已重启。"
 }
 function uninstall() {
     check_root
