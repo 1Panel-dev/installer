@@ -123,7 +123,7 @@ function Set_Dir(){
     fi
 }
 
-ACCELERATOR_URL="https://docker.1panel.live"
+ACCELERATOR_URL="https://docker.1panelproxy.com"
 DAEMON_JSON="/etc/docker/daemon.json"
 BACKUP_FILE="/etc/docker/daemon.json.1panel_bak"
 
@@ -158,7 +158,13 @@ function configure_accelerator() {
 
 function Install_Docker(){
     if which docker >/dev/null 2>&1; then
-        log "$DOCKER_ALREADY_INSTALLED"
+        docker_version=$(docker --version | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
+        major_version=${docker_version%%.*}
+        minor_version=${docker_version##*.}
+        if [[ $major_version -lt 20 ]]; then
+            # TODO log "$DOCKER_ALREADY_INSTALLED"
+            log "检测到 Docker 版本为 $docker_version，低于 20.x，可能影响部分功能的正常使用，建议手动升级至更高版本。"
+        fi
         configure_accelerator
     else
         log "$DOCKER_INSTALL_ONLINE"
