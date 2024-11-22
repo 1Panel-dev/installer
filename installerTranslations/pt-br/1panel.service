@@ -1,0 +1,24 @@
+[Unit]
+Description=1Panel, um painel moderno e open source para Linux
+After=syslog.target network-online.target
+Wants=network-online.target
+
+[Service]
+# Inicia o executável principal do 1Panel
+ExecStart=/usr/bin/1panel
+# Recarga do serviço ao receber sinal HUP
+ExecReload=/bin/kill -s HUP $MAINPID
+# Configurações de reinício do serviço em caso de falha
+Restart=always
+RestartSec=5
+# Limites de recursos para o serviço
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LimitCORE=1048576
+Delegate=yes
+# Define o modo de encerramento do serviço
+KillMode=process
+
+[Install]
+# Inicia o serviço no modo multiusuário
+WantedBy=multi-user.target
