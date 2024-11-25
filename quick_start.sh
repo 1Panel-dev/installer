@@ -1,22 +1,22 @@
 #!/bin/bash
-# Install Latest Stable 1Panel Release
 
-# Language selection setup
 LANG_FILE=".selected_language"
 LANG_DIR="./lang"
-AVAILABLE_LANGS=("en" "fa" "zh")
-
-# Associative array for language names
+AVAILABLE_LANGS=("en" "zh" "fa")
 declare -A LANG_NAMES
-LANG_NAMES=( ["en"]="English" ["fa"]="Persian" ["zh"]="Chinese" )
+LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" )
 
-# Check if the language is already selected and saved
+LANG_ARCHIVE="lang.tar.gz"
+LANG_DOWNLOAD_URL="https://resource.fit2cloud.com/1panel/resource/language/${LANG_ARCHIVE}"
+curl -LOk -o ${LANG_ARCHIVE} ${LANG_DOWNLOAD_URL}
+tar zxf ${LANG_ARCHIVE}
+
 if [[ -f $LANG_FILE ]]; then
-    # Load the saved language
     selected_lang=$(cat "$LANG_FILE")
-    echo "${LANG_ALREADY_SELECTED_MSG} ${LANG_NAMES[$selected_lang]}"
 else
-    # Prompt the user to select a language
+    echo "en" > "$CURRENT_DIR/$LANG_FILE"
+    source "$LANG_DIR/en.sh"
+
     echo "$LANG_PROMPT_MSG"
     for i in "${!AVAILABLE_LANGS[@]}"; do
         lang_code="${AVAILABLE_LANGS[i]}"
@@ -29,7 +29,6 @@ else
         selected_lang=${AVAILABLE_LANGS[$((lang_choice - 1))]}
         echo "${LANG_SELECTED_CONFIRM_MSG} ${LANG_NAMES[$selected_lang]}"
 
-        # Save the selected language to the file
         echo $selected_lang > $LANG_FILE
     else
         echo "$LANG_INVALID_MSG"
@@ -38,10 +37,8 @@ else
     fi
 fi
 
-# Load the selected language file
 source "$LANG_DIR/$selected_lang.sh"
 
-# Existing script logic
 osCheck=$(uname -a)
 if [[ $osCheck =~ 'x86_64' ]]; then
     architecture="amd64"
@@ -75,42 +72,44 @@ if [[ "x${VERSION}" == "x" ]]; then
     exit 1
 fi
 
-package_file_name="1panel-${VERSION}-linux-${architecture}.tar.gz"
-package_download_url="https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/${VERSION}/release/${package_file_name}"
-expected_hash=$(curl -s "$HASH_FILE_URL" | grep "$package_file_name" | awk '{print $1}')
+PACKAGE_FILE_NAME="1panel-${VERSION}-linux-${architecture}.tar.gz"
+PACKAGE_DOWNLOAD_URL="https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/${VERSION}/release/${PACKAGE_FILE_NAME}"
+EXPECTED_HASH=$(curl -s "$HASH_FILE_URL" | grep "$PACKAGE_FILE_NAME" | awk '{print $1}')
 
-if [[ -f ${package_file_name} ]]; then
-    actual_hash=$(sha256sum "$package_file_name" | awk '{print $1}')
-    if [[ "$expected_hash" == "$actual_hash" ]]; then
+if [[ -f ${PACKAGE_FILE_NAME} ]]; then
+    actual_hash=$(sha256sum "$PACKAGE_FILE_NAME" | awk '{print $1}')
+    if [[ "$EXPECTED_HASH" == "$actual_hash" ]]; then
         echo "$INSTALLATION_PACKAGE_HASH"
         rm -rf 1panel-${VERSION}-linux-${architecture}
-        tar zxvf ${package_file_name}
+        tar zxf ${PACKAGE_FILE_NAME}
+        cp -r $LANG_DIR $LANG_FILE 1panel-${VERSION}-linux-${architecture}
         cd 1panel-${VERSION}-linux-${architecture}
         /bin/bash install.sh
         exit 0
     else
         echo "$INSTALLATION_PACKAGE_ERROR"
-        rm -f ${package_file_name}
+        rm -f ${PACKAGE_FILE_NAME}
     fi
 fi
 
 echo "$START_DOWNLOADING_PANEL ${VERSION}"
-echo "$INSTALLATION_PACKAGE_DOWNLOAD_ADDRESS ${package_download_url}"
+echo "$INSTALLATION_PACKAGE_DOWNLOAD_ADDRESS ${PACKAGE_DOWNLOAD_URL}"
 
-curl -LOk -o ${package_file_name} ${package_download_url}
+curl -LOk -o ${PACKAGE_FILE_NAME} ${PACKAGE_DOWNLOAD_URL}
 curl -sfL https://resource.fit2cloud.com/installation-log.sh | sh -s 1p install ${VERSION}
-if [[ ! -f ${package_file_name} ]]; then
+if [[ ! -f ${PACKAGE_FILE_NAME} ]]; then
     echo "$INSTALLATION_PACKAGE_DOWNLOAD_FAIL"
     exit 1
 fi
 
-tar zxvf ${package_file_name}
+tar zxf ${PACKAGE_FILE_NAME}
 if [[ $? != 0 ]]; then
     echo "$INSTALLATION_PACKAGE_DOWNLOAD_FAIL"
-    rm -f ${package_file_name}
+    rm -f ${PACKAGE_FILE_NAME}
     exit 1
 fi
 
+cp -r $LANG_DIR $LANG_FILE 1panel-${VERSION}-linux-${architecture}
 cd 1panel-${VERSION}-linux-${architecture}
 
 /bin/bash install.sh

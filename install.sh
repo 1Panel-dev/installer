@@ -6,8 +6,6 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-#!/bin/bash
-
 CURRENT_DIR=$(
     cd "$(dirname "$0")" || exit
     pwd
@@ -15,19 +13,17 @@ CURRENT_DIR=$(
 
 LANG_FILE=".selected_language"
 LANG_DIR="$CURRENT_DIR/lang"
-AVAILABLE_LANGS=("en" "fa" "zh")
+AVAILABLE_LANGS=("en" "zh" "fa")
 
-# Define associative array for language display names
 declare -A LANG_NAMES
-LANG_NAMES=( ["en"]="English" ["fa"]="Persian" ["zh"]="Chinese  汉语" )
+LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" )
 
-# Check if the language is already selected and saved
 if [ -f "$CURRENT_DIR/$LANG_FILE" ]; then
-    # Load the saved language
     selected_lang=$(cat "$CURRENT_DIR/$LANG_FILE")
-    echo "$LANG_SELECTED_MSG ${LANG_NAMES[$selected_lang]}"
 else
-    # Prompt the user to select a language
+    echo "en" > "$CURRENT_DIR/$LANG_FILE"
+    source "$LANG_DIR/en.sh"
+
     echo "$LANG_PROMPT_MSG"
     for i in "${!AVAILABLE_LANGS[@]}"; do
         lang_code="${AVAILABLE_LANGS[i]}"
@@ -39,8 +35,6 @@ else
     if [[ $lang_choice -ge 1 && $lang_choice -le ${#AVAILABLE_LANGS[@]} ]]; then
         selected_lang=${AVAILABLE_LANGS[$((lang_choice - 1))]}
         echo "$LANG_SELECTED_CONFIRM_MSG ${LANG_NAMES[$selected_lang]}"
-
-        # Save the selected language to the file
         echo "$selected_lang" > "$CURRENT_DIR/$LANG_FILE"
     else
         echo "$LANG_INVALID_MSG"
@@ -49,7 +43,6 @@ else
     fi
 fi
 
-# Load the selected language file
 LANGFILE="$LANG_DIR/$selected_lang.sh"
 if [ -f "$LANGFILE" ]; then
     source "$LANGFILE"
@@ -102,7 +95,7 @@ function Prepare_System(){
 }
 
 function Set_Dir(){
-    if read -t 120 -p "$SET_INSTALL_DIR：" PANEL_BASE_DIR;then
+    if read -t 120 -p "$SET_INSTALL_DIR" PANEL_BASE_DIR;then
         if [[ "$PANEL_BASE_DIR" != "" ]];then
             if [[ "$PANEL_BASE_DIR" != /* ]];then
                 log "$PROVIDE_FULL_PATH"
@@ -162,8 +155,7 @@ function Install_Docker(){
         major_version=${docker_version%%.*}
         minor_version=${docker_version##*.}
         if [[ $major_version -lt 20 ]]; then
-            # TODO log "$DOCKER_ALREADY_INSTALLED"
-            log "检测到 Docker 版本为 $docker_version，低于 20.x，可能影响部分功能的正常使用，建议手动升级至更高版本。"
+            log "$LOW_DOCKER_VERSION"
         fi
         configure_accelerator
     else
@@ -380,7 +372,7 @@ function Set_Entrance(){
     DEFAULT_ENTRANCE=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
 
     while true; do
-	    read -p "设置 1Panel 安全入口（默认为$DEFAULT_ENTRANCE）：" PANEL_ENTRANCE
+	    read -p "$SET_PANEL_ENTRANCE $DEFAULT_ENTRANCE）：" PANEL_ENTRANCE
 	    if [[ "$PANEL_ENTRANCE" == "" ]]; then
     	    PANEL_ENTRANCE=$DEFAULT_ENTRANCE
     	fi
@@ -490,12 +482,13 @@ function Init_Panel(){
     ESCAPED_PANEL_PASSWORD=$(echo "$PANEL_PASSWORD" | sed 's/[!@#$%*_,.?]/\\&/g')
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
+    sed -i -e "s#LANGUAGE=.*#LANGUAGE=${selected_lang}#g" /usr/local/bin/1pctl
     if [[ ! -f /usr/bin/1pctl ]]; then
         ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
     fi
 
+    cp -r ../lang /usr/local/bin
     cp ./1panel.service /etc/systemd/system
-
     systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a "${CURRENT_DIR}"/install.log
 
     log "$START_PANEL_SERVICE"
