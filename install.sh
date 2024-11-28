@@ -13,10 +13,10 @@ CURRENT_DIR=$(
 
 LANG_FILE=".selected_language"
 LANG_DIR="$CURRENT_DIR/lang"
-AVAILABLE_LANGS=("en" "zh" "fa")
+AVAILABLE_LANGS=("en" "zh" "fa" "pt-BR")
 
 declare -A LANG_NAMES
-LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" )
+LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" ["pt-BR"]="Português (Brasil)" )
 
 if [ -f "$CURRENT_DIR/$LANG_FILE" ]; then
     selected_lang=$(cat "$CURRENT_DIR/$LANG_FILE")

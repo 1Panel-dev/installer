@@ -1,43 +1,44 @@
 #!/bin/bash
 
-TXT_LANG_FILE=".selected_language"
-TXT_LANG_DIR="./lang"
-TXT_AVAILABLE_LANGS=("en" "zh" "fa" "pt-BR")
-declare -A TXT_LANG_NAMES
-TXT_LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" ["pt-BR"]="Português (Brasil)" )
+LANG_FILE=".selected_language"
+LANG_DIR="./lang"
+AVAILABLE_LANGS=("en" "zh" "fa" "pt-BR")
 
-TXT_LANG_ARCHIVE="lang.tar.gz"
-TXT_LANG_DOWNLOAD_URL="https://resource.fit2cloud.com/1panel/resource/language/${TXT_LANG_ARCHIVE}"
-curl -LOk -o ${TXT_LANG_ARCHIVE} ${TXT_LANG_DOWNLOAD_URL}
-tar zxf ${TXT_LANG_ARCHIVE}
+declare -A LANG_NAMES
+LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" ["pt-BR"]="Português (Brasil)" )
 
-if [[ -f $TXT_LANG_FILE ]]; then
-    selected_lang=$(cat "$TXT_LANG_FILE")
+LANG_ARCHIVE="lang.tar.gz"
+LANG_DOWNLOAD_URL="https://resource.fit2cloud.com/1panel/resource/language/${LANG_ARCHIVE}"
+curl -LOk -o ${LANG_ARCHIVE} ${LANG_DOWNLOAD_URL}
+tar zxf ${LANG_ARCHIVE}
+
+if [[ -f $LANG_FILE ]]; then
+    selected_lang=$(cat "$LANG_FILE")
 else
-    echo "en" > "$CURRENT_DIR/$TXT_LANG_FILE"
-    source "$TXT_LANG_DIR/en.sh"
+    echo "en" > "$CURRENT_DIR/$LANG_FILE"
+    source "$LANG_DIR/en.sh"
 
     echo "$TXT_LANG_PROMPT_MSG"
-    for i in "${!TXT_AVAILABLE_LANGS[@]}"; do
-        lang_code="${TXT_AVAILABLE_LANGS[i]}"
-        echo "$((i + 1)). ${TXT_LANG_NAMES[$lang_code]}"
+    for i in "${!AVAILABLE_LANGS[@]}"; do
+        lang_code="${AVAILABLE_LANGS[i]}"
+        echo "$((i + 1)). ${LANG_NAMES[$lang_code]}"
     done
 
     read -p "$TXT_LANG_CHOICE_MSG" lang_choice
 
-    if [[ $lang_choice -ge 1 && $lang_choice -le ${#TXT_AVAILABLE_LANGS[@]} ]]; then
-        selected_lang=${TXT_AVAILABLE_LANGS[$((lang_choice - 1))]}
-        echo "${TXT_LANG_SELECTED_CONFIRM_MSG} ${TXT_LANG_NAMES[$selected_lang]}"
+    if [[ $lang_choice -ge 1 && $lang_choice -le ${#AVAILABLE_LANGS[@]} ]]; then
+        selected_lang=${AVAILABLE_LANGS[$((lang_choice - 1))]}
+        echo "${TXT_LANG_SELECTED_CONFIRM_MSG} ${LANG_NAMES[$selected_lang]}"
 
-        echo $selected_lang > $TXT_LANG_FILE
+        echo $selected_lang > $LANG_FILE
     else
         echo "$TXT_LANG_INVALID_MSG"
         selected_lang="en"
-        echo $selected_lang > $TXT_LANG_FILE
+        echo $selected_lang > $LANG_FILE
     fi
 fi
 
-source "$TXT_LANG_DIR/$selected_lang.sh"
+source "$LANG_DIR/$selected_lang.sh"
 
 osCheck=$(uname -a)
 if [[ $osCheck =~ 'x86_64' ]]; then
@@ -82,7 +83,7 @@ if [[ -f ${PACKAGE_FILE_NAME} ]]; then
         echo "$TXT_INSTALLATION_PACKAGE_HASH"
         rm -rf 1panel-${VERSION}-linux-${architecture}
         tar zxf ${PACKAGE_FILE_NAME}
-        cp -r $TXT_LANG_DIR $TXT_LANG_FILE 1panel-${VERSION}-linux-${architecture}
+        cp -r $LANG_DIR $LANG_FILE 1panel-${VERSION}-linux-${architecture}
         cd 1panel-${VERSION}-linux-${architecture}
         /bin/bash install.sh
         exit 0
@@ -109,7 +110,7 @@ if [[ $? != 0 ]]; then
     exit 1
 fi
 
-cp -r $TXT_LANG_DIR $TXT_LANG_FILE 1panel-${VERSION}-linux-${architecture}
+cp -r $LANG_DIR $LANG_FILE 1panel-${VERSION}-linux-${architecture}
 cd 1panel-${VERSION}-linux-${architecture}
 
 /bin/bash install.sh
