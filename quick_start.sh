@@ -2,9 +2,9 @@
 
 TXT_LANG_FILE=".selected_language"
 TXT_LANG_DIR="./lang"
-TXT_AVAILABLE_LANGS=("en" "zh" "fa")
+TXT_AVAILABLE_LANGS=("en" "zh" "fa" "pt-BR")
 declare -A TXT_LANG_NAMES
-TXT_LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" )
+TXT_LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" ["pt-BR"]="Português (Brasil)" )
 
 TXT_LANG_ARCHIVE="lang.tar.gz"
 TXT_LANG_DOWNLOAD_URL="https://resource.fit2cloud.com/1panel/resource/language/${TXT_LANG_ARCHIVE}"
