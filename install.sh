@@ -487,10 +487,13 @@ function Init_Panel(){
         ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
     fi
 
+    mkdir $RUN_BASE_DIR/geo/
+    cp -r ./GeoIP.mmdb $RUN_BASE_DIR/geo/
+
     cp -r ../lang /usr/local/bin
     cp ./1panel.service /etc/systemd/system
-    systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a "${CURRENT_DIR}"/install.log
 
+    systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a "${CURRENT_DIR}"/install.log
     log "$TXT_START_PANEL_SERVICE"
     systemctl start 1panel | tee -a "${CURRENT_DIR}"/install.log
 
