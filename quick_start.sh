@@ -9,13 +9,13 @@ LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" 
 
 LANG_ARCHIVE="lang.tar.gz"
 LANG_DOWNLOAD_URL="https://resource.fit2cloud.com/1panel/resource/language/${LANG_ARCHIVE}"
-curl -LOk -o ${LANG_ARCHIVE} ${LANG_DOWNLOAD_URL}
+curl -LOk ${LANG_DOWNLOAD_URL}
 tar zxf ${LANG_ARCHIVE}
 
 if [[ -f $LANG_FILE ]]; then
     selected_lang=$(cat "$LANG_FILE")
 else
-    echo "en" > "$CURRENT_DIR/$LANG_FILE"
+    echo "en" > "$LANG_FILE"
     source "$LANG_DIR/en.sh"
 
     echo "$TXT_LANG_PROMPT_MSG"
@@ -96,7 +96,7 @@ fi
 echo "$TXT_START_DOWNLOADING_PANEL ${VERSION}"
 echo "$TXT_INSTALLATION_PACKAGE_DOWNLOAD_ADDRESS ${PACKAGE_DOWNLOAD_URL}"
 
-curl -LOk -o ${PACKAGE_FILE_NAME} ${PACKAGE_DOWNLOAD_URL}
+curl -LOk ${PACKAGE_DOWNLOAD_URL}
 curl -sfL https://resource.fit2cloud.com/installation-log.sh | sh -s 1p install ${VERSION}
 if [[ ! -f ${PACKAGE_FILE_NAME} ]]; then
     echo "$TXT_INSTALLATION_PACKAGE_DOWNLOAD_FAIL"

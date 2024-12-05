@@ -71,21 +71,21 @@ function uninstall() {
 }
 
 function user-info() {
-    1panel user-info
+    1panel -l $LANGUAGE user-info
 }
 
 function listen-ip() {
     case "${target}" in
         ipv4)
-            1panel listen-ip ipv4
+            1panel -l $LANGUAGE listen-ip ipv4
             restart
             ;;
         ipv6)
-            1panel listen-ip ipv6
+            1panel -l $LANGUAGE listen-ip ipv6
             restart
             ;;
         *)
-            1panel listen-ip
+            1panel -l $LANGUAGE listen-ip
             ;;
     esac
 }
@@ -93,39 +93,39 @@ function listen-ip() {
 function restore() {
     read -p "$TXT_PANEL_SERVICE_RESTORE_NOTICE : " yn
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
-        1panel restore
+        1panel -l $LANGUAGE restore
         systemctl daemon-reload
         restart
-        1panel version
+        1panel -l $LANGUAGE version
     else
         exit 0
     fi
 }
 
 function version() {
-    1panel version
+    1panel -l $LANGUAGE version
 }
 
 function reset() {
     case "${target}" in
         domain)
-            1panel reset domain
+            1panel -l $LANGUAGE reset domain
             ;;
         entrance)
-            1panel reset entrance
+            1panel -l $LANGUAGE reset entrance
             ;;
         https)
-            1panel reset https
+            1panel -l $LANGUAGE reset https
             restart
             ;;
         ips)
-            1panel reset ips
+            1panel -l $LANGUAGE reset ips
             ;;
         mfa)
-            1panel reset mfa
+            1panel -l $LANGUAGE reset mfa
             ;;
         *)
-            1panel reset
+            1panel -l $LANGUAGE reset
             ;;
     esac
 }
@@ -133,16 +133,16 @@ function reset() {
 function update() {
     case "${target}" in
         username)
-            1panel update username
+            1panel -l $LANGUAGE update username
             ;;
         password)
-            1panel update password
+            1panel -l $LANGUAGE update password
             ;;
         port)
-            1panel update port
+            1panel -l $LANGUAGE update port
             ;;
         *)
-            1panel update
+            1panel -l $LANGUAGE update
             ;;
     esac
 }
