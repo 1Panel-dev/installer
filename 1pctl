@@ -4,7 +4,7 @@ action=$1
 target=$2
 args=$@
 
-BASE_DIR=directory
+BASE_DIR=/opt
 ORIGINAL_PORT=port
 ORIGINAL_VERSION=version
 ORIGINAL_ENTRANCE=entrance
