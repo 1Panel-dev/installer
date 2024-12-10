@@ -8,7 +8,7 @@ declare -A LANG_NAMES
 LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" ["pt-BR"]="Português (Brasil)" )
 
 LANG_ARCHIVE="lang.tar.gz"
-LANG_DOWNLOAD_URL="https://resource.fit2cloud.com/1panel/resource/language/${LANG_ARCHIVE}"
+LANG_DOWNLOAD_URL="https://resource.1panel.hk/language/${LANG_ARCHIVE}"
 curl -LOk ${LANG_DOWNLOAD_URL}
 tar zxf ${LANG_ARCHIVE}
 
@@ -65,8 +65,8 @@ else
     fi
 fi
 
-VERSION=$(curl -s https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/latest)
-HASH_FILE_URL="https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/${VERSION}/release/checksums.txt"
+VERSION=$(curl -s https://resource.1panel.hk/${INSTALL_MODE}/latest)
+HASH_FILE_URL="https://resource.1panel.hk/${INSTALL_MODE}/${VERSION}/release/checksums.txt"
 
 if [[ "x${VERSION}" == "x" ]]; then
     echo "$TXT_OBTAIN_VERSION_FAIELD"
@@ -74,7 +74,7 @@ if [[ "x${VERSION}" == "x" ]]; then
 fi
 
 PACKAGE_FILE_NAME="1panel-${VERSION}-linux-${architecture}.tar.gz"
-PACKAGE_DOWNLOAD_URL="https://resource.fit2cloud.com/1panel/package/${INSTALL_MODE}/${VERSION}/release/${PACKAGE_FILE_NAME}"
+PACKAGE_DOWNLOAD_URL="https://resource.1panel.hk/${INSTALL_MODE}/${VERSION}/release/${PACKAGE_FILE_NAME}"
 EXPECTED_HASH=$(curl -s "$HASH_FILE_URL" | grep "$PACKAGE_FILE_NAME" | awk '{print $1}')
 
 if [[ -f ${PACKAGE_FILE_NAME} ]]; then

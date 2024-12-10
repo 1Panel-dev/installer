@@ -12,7 +12,11 @@ ORIGINAL_USERNAME=username
 ORIGINAL_PASSWORD=password
 LANGUAGE=en
 
-source /usr/local/bin/lang/$LANGUAGE.sh
+if [ -f "/usr/local/bin/lang/$LANGUAGE.sh" ]; then
+    source "/usr/local/bin/lang/$LANGUAGE.sh"
+else
+    LANGUAGE=en
+fi
 
 function usage() {
     echo "$PANEL_CONTROL_SCRIPT"
