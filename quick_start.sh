@@ -1,45 +1,5 @@
 #!/bin/bash
 
-LANG_FILE=".selected_language"
-LANG_DIR="./lang"
-AVAILABLE_LANGS=("en" "zh" "fa" "pt-BR")
-
-declare -A LANG_NAMES
-LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" ["pt-BR"]="Português (Brasil)" )
-
-LANG_ARCHIVE="lang.tar.gz"
-LANG_DOWNLOAD_URL="https://resource.1panel.hk/language/${LANG_ARCHIVE}"
-curl -LOk ${LANG_DOWNLOAD_URL}
-tar zxf ${LANG_ARCHIVE}
-
-if [[ -f $LANG_FILE ]]; then
-    selected_lang=$(cat "$LANG_FILE")
-else
-    echo "en" > "$LANG_FILE"
-    source "$LANG_DIR/en.sh"
-
-    echo "$TXT_LANG_PROMPT_MSG"
-    for i in "${!AVAILABLE_LANGS[@]}"; do
-        lang_code="${AVAILABLE_LANGS[i]}"
-        echo "$((i + 1)). ${LANG_NAMES[$lang_code]}"
-    done
-
-    read -p "$TXT_LANG_CHOICE_MSG" lang_choice
-
-    if [[ $lang_choice -ge 1 && $lang_choice -le ${#AVAILABLE_LANGS[@]} ]]; then
-        selected_lang=${AVAILABLE_LANGS[$((lang_choice - 1))]}
-        echo "${TXT_LANG_SELECTED_CONFIRM_MSG} ${LANG_NAMES[$selected_lang]}"
-
-        echo $selected_lang > $LANG_FILE
-    else
-        echo "$TXT_LANG_INVALID_MSG"
-        selected_lang="en"
-        echo $selected_lang > $LANG_FILE
-    fi
-fi
-
-source "$LANG_DIR/$selected_lang.sh"
-
 osCheck=$(uname -a)
 if [[ $osCheck =~ 'x86_64' ]]; then
     architecture="amd64"
@@ -52,7 +12,7 @@ elif [[ $osCheck =~ 'ppc64le' ]]; then
 elif [[ $osCheck =~ 's390x' ]]; then
     architecture="s390x"
 else
-    echo "$TXT_SYSTEM_ARCHITECTURE"
+    echo "The system architecture is not currently supported. Please refer to the official documentation to select a supported system."
     exit 1
 fi
 
@@ -60,7 +20,7 @@ if [[ ! ${INSTALL_MODE} ]]; then
     INSTALL_MODE="stable"
 else
     if [[ ${INSTALL_MODE} != "dev" && ${INSTALL_MODE} != "stable" ]]; then
-        echo "$TXT_INSTALLATIO_MODE"
+        echo "Please enter the correct installation mode (dev or stable)"
         exit 1
     fi
 fi
@@ -69,7 +29,7 @@ VERSION=$(curl -s https://resource.1panel.hk/${INSTALL_MODE}/latest)
 HASH_FILE_URL="https://resource.1panel.hk/${INSTALL_MODE}/${VERSION}/release/checksums.txt"
 
 if [[ "x${VERSION}" == "x" ]]; then
-    echo "$TXT_OBTAIN_VERSION_FAIELD"
+    echo "Failed to obtain the latest version, please try again later"
     exit 1
 fi
 
@@ -80,37 +40,34 @@ EXPECTED_HASH=$(curl -s "$HASH_FILE_URL" | grep "$PACKAGE_FILE_NAME" | awk '{pri
 if [[ -f ${PACKAGE_FILE_NAME} ]]; then
     actual_hash=$(sha256sum "$PACKAGE_FILE_NAME" | awk '{print $1}')
     if [[ "$EXPECTED_HASH" == "$actual_hash" ]]; then
-        echo "$TXT_INSTALLATION_PACKAGE_HASH"
+        echo "The installation package already exists. Skip downloading."
         rm -rf 1panel-${VERSION}-linux-${architecture}
         tar zxf ${PACKAGE_FILE_NAME}
-        cp -r $LANG_DIR $LANG_FILE 1panel-${VERSION}-linux-${architecture}
         cd 1panel-${VERSION}-linux-${architecture}
         /bin/bash install.sh
         exit 0
     else
-        echo "$TXT_INSTALLATION_PACKAGE_ERROR"
+        echo "The installation package already exists, but the hash value is inconsistent. Start downloading again"
         rm -f ${PACKAGE_FILE_NAME}
     fi
 fi
 
-echo "$TXT_START_DOWNLOADING_PANEL ${VERSION}"
-echo "$TXT_INSTALLATION_PACKAGE_DOWNLOAD_ADDRESS ${PACKAGE_DOWNLOAD_URL}"
+echo "Start downloading 1Panel ${VERSION}"
+echo "Installation package download address: ${PACKAGE_DOWNLOAD_URL}"
 
 curl -LOk ${PACKAGE_DOWNLOAD_URL}
 curl -sfL https://resource.fit2cloud.com/installation-log.sh | sh -s 1p install ${VERSION}
 if [[ ! -f ${PACKAGE_FILE_NAME} ]]; then
-    echo "$TXT_INSTALLATION_PACKAGE_DOWNLOAD_FAIL"
+    echo "Failed to download the installation package"
     exit 1
 fi
 
 tar zxf ${PACKAGE_FILE_NAME}
 if [[ $? != 0 ]]; then
-    echo "$TXT_INSTALLATION_PACKAGE_DOWNLOAD_FAIL"
+    echo "Failed to download the installation package"
     rm -f ${PACKAGE_FILE_NAME}
     exit 1
 fi
-
-cp -r $LANG_DIR $LANG_FILE 1panel-${VERSION}-linux-${architecture}
 cd 1panel-${VERSION}-linux-${architecture}
 
 /bin/bash install.sh
