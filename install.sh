@@ -318,7 +318,7 @@ function Set_Port(){
     DEFAULT_PORT=$(expr $RANDOM % 55535 + 10000)
 
     while true; do
-        read -p "$TXT_SET_PANEL_PORT $DEFAULT_PORT ）：" PANEL_PORT
+        read -p "$TXT_SET_PANEL_PORT $DEFAULT_PORT): " PANEL_PORT
 
         if [[ "$PANEL_PORT" == "" ]];then
             PANEL_PORT=$DEFAULT_PORT
@@ -372,7 +372,7 @@ function Set_Entrance(){
     DEFAULT_ENTRANCE=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
 
     while true; do
-	    read -p "$TXT_SET_PANEL_ENTRANCE $DEFAULT_ENTRANCE）：" PANEL_ENTRANCE
+	    read -p "$TXT_SET_PANEL_ENTRANCE $DEFAULT_ENTRANCE): " PANEL_ENTRANCE
 	    if [[ "$PANEL_ENTRANCE" == "" ]]; then
     	    PANEL_ENTRANCE=$DEFAULT_ENTRANCE
     	fi
@@ -391,7 +391,7 @@ function Set_Username(){
     DEFAULT_USERNAME=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
 
     while true; do
-        read -p "$TXT_SET_PANEL_USER $DEFAULT_USERNAME）：" PANEL_USERNAME
+        read -p "$TXT_SET_PANEL_USER $DEFAULT_USERNAME): " PANEL_USERNAME
 
         if [[ "$PANEL_USERNAME" == "" ]];then
             PANEL_USERNAME=$DEFAULT_USERNAME
@@ -445,7 +445,7 @@ function Set_Password(){
     DEFAULT_PASSWORD=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
 
     while true; do
-        log "$TXT_SET_PANEL_PASSWORD $DEFAULT_PASSWORD）："
+        log "$TXT_SET_PANEL_PASSWORD $DEFAULT_PASSWORD): "
         passwd
         PANEL_PASSWORD=$reply
         if [[ "$PANEL_PASSWORD" == "" ]];then
