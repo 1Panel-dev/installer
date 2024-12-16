@@ -56,7 +56,6 @@ echo "Start downloading 1Panel ${VERSION}"
 echo "Installation package download address: ${PACKAGE_DOWNLOAD_URL}"
 
 curl -LOk ${PACKAGE_DOWNLOAD_URL}
-curl -sfL https://resource.fit2cloud.com/installation-log.sh | sh -s 1p install ${VERSION}
 if [[ ! -f ${PACKAGE_FILE_NAME} ]]; then
     echo "Failed to download the installation package"
     exit 1
