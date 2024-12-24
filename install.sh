@@ -552,6 +552,7 @@ function Show_Result(){
     log "$TXT_PROJECT_OFFICIAL_WEBSITE"
     log "$TXT_PROJECT_DOCUMENTATION"
     log "$TXT_PROJECT_REPOSITORY"
+    log "$TXT_COMMUNITY"
     log ""
     log "$TXT_OPEN_PORT_SECURITY_GROUP $PANEL_PORT"
     log ""
