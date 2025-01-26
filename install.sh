@@ -59,16 +59,16 @@ function log() {
     message="[1Panel Log]: $1 "
     case "$1" in
         *"$TXT_RUN_AS_ROOT"*)
-            echo -e "${RED}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${RED}${message}${NC}" 2>&1 | tee -a "${LOG_FILE}
             ;;
         *"$TXT_SUCCESS_MESSAGE"* )
-            echo -e "${GREEN}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${GREEN}${message}${NC}" 2>&1 | tee -a "${LOG_FILE}
             ;;
         *"$TXT_IGNORE_MESSAGE"*|*"$TXT_SKIP_MESSAGE"* )
-            echo -e "${YELLOW}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${YELLOW}${message}${NC}" 2>&1 | tee -a "${LOG_FILE}
             ;;
         * )
-            echo -e "${BLUE}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${BLUE}${message}${NC}" 2>&1 | tee -a "${LOG_FILE}
             ;;
     esac
 }
@@ -158,7 +158,7 @@ function Install_Docker(){
         major_version=${docker_version%%.*}
         minor_version=${docker_version##*.}
         if [[ $(which opkg &>/dev/null && service dockerd start && service dockerd status 2>&1 || systemctl start docker && systemctl status docker 2>&1) == *running* ]]; then
-            log "Docker 服务启动成功!"
+            log "$TXT_DOCKER_RESTARTED"
 
         else
             if [[ $major_version -lt 20 ]]; then
@@ -488,15 +488,6 @@ function Set_Password(){
         break
     done
 }
-
-function Init_Panel(){
-    log "$TXT_CONFIGURE_PANEL_SERVICE"
-
-    RUN_BASE_DIR=$PANEL_BASE_DIR/1panel
-    mkdir -p "$RUN_BASE_DIR"
-    rm -rf "$RUN_BASE_DIR:?/*"
-
-    cd "${CURRENT_DIR}" || exit
 
 init_configure() {
     cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel

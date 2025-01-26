@@ -21,7 +21,7 @@ fi
 # 检查是否是root用户，避免多次要求输入密码
 check_root() {
     if [[ $EUID -ne 0 ]]; then
-        echo "此脚本需要以root身份运行。"
+        echo "$TXT_RUN_AS_ROOT"
         exit 1
     fi
 }
@@ -51,7 +51,7 @@ function status() {
     if ! service 1paneld status; then
         systemctl status 1panel.service
         if [[ $? -ne 0 ]]; then
-            echo "查询 1Panel 服务状态失败。"
+            echo "$TXT_PANEL_SERVICE_STATUS : $TXT_FAIELD_MESSAGE"
             exit 1
         fi
     fi
@@ -61,47 +61,47 @@ function start() {
     if ! service 1paneld start; then
         systemctl start 1panel.service
         if [[ $? -ne 0 ]]; then
-            echo "启动 1Panel 服务失败。"
+            echo "$TXT_PANEL_SERVICE_START_ERROR"
             exit 1
         fi
     fi
-    echo "1Panel 服务已启动。"
+    echo "$TXT_PANEL_SERVICE_START_SUCCESS"
 }
 
 function stop() {
     if ! service 1paneld stop; then
         systemctl stop 1panel.service
         if [[ $? -ne 0 ]]; then
-            echo "停止 1Panel 服务失败。"
+            echo "$TXT_PANEL_SERVICE_STOP $TXT_FAIELD_MESSAGE"
             exit 1
         fi
     fi
-    echo "1Panel 服务已停止。"
+    echo "$TXT_PANEL_SERVICE_STOP $TXT_SUCCESS_MESSAGE"
 }
 
 function restart() {
     if ! service 1paneld restart; then
         systemctl restart 1panel.service
         if [[ $? -ne 0 ]]; then
-            echo "重启 1Panel 服务失败。"
+            echo "$TXT_PANEL_SERVICE_RESTART $$TXT_FAIELD_MESSAGE"
             exit 1
         fi
     fi
-    echo "1Panel 服务已重启。"
+    echo "$TXT_PANEL_SERVICE_RESTART $TXT_SUCCESS_MESSAGE"
 }
 
 function uninstall() {
     check_root
-    read -p "TXT_PANEL_SERVICE_UNINSTALL_NOTICE : " yn
+    read -p "$TXT_PANEL_SERVICE_UNINSTALL_NOTICE : " yn
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
-        echo -e "TXT_PANEL_SERVICE_UNINSTALL_START"
+        echo -e "$TXT_PANEL_SERVICE_UNINSTALL_START"
         echo -e ""
-        echo -e "1) 停止 1Panel 服务进程..."
+        echo -e "1) $TXT_PANEL_SERVICE_UNINSTALL_STOP"
         if which opkg &>/dev/null;then
             service 1paneld stop
-            echo -e "2) 删除 1Panel 服务和数据目录..."
+            echo -e "2) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
             rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} 
-            echo -e "3) 禁用并删除服务配置文件..."
+            echo -e "3) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
             /etc/init.d/1paneld disable 
             rm -rf /etc/init.d/1paneld
         else
@@ -109,7 +109,7 @@ function uninstall() {
             systemctl disable 1panel.service >/dev/null 2>&1
             echo -e "2) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
             rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service
-            echo -e "3) 重新加载服务配置文件..."
+            echo -e "3) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
             systemctl daemon-reload
             systemctl reset-failed
         fi
