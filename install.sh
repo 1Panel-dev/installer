@@ -56,19 +56,20 @@ LOG_FILE=${CURRENT_DIR}/install.log
 PASSWORD_MASK="**********"
 
 function log() {
-    message="[1Panel Log]: $1 "
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    message="[1Panel ${timestamp} install Log]: $1 "
     case "$1" in
         *"$TXT_RUN_AS_ROOT"*)
-            echo -e "${RED}${message}${NC}" 2>&1 | tee -a "${LOG_FILE}
+            echo -e "${RED}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
         *"$TXT_SUCCESS_MESSAGE"* )
-            echo -e "${GREEN}${message}${NC}" 2>&1 | tee -a "${LOG_FILE}
+            echo -e "${GREEN}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
         *"$TXT_IGNORE_MESSAGE"*|*"$TXT_SKIP_MESSAGE"* )
-            echo -e "${YELLOW}${message}${NC}" 2>&1 | tee -a "${LOG_FILE}
+            echo -e "${YELLOW}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
         * )
-            echo -e "${BLUE}${message}${NC}" 2>&1 | tee -a "${LOG_FILE}
+            echo -e "${BLUE}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
     esac
 }
@@ -259,7 +260,7 @@ function Install_Docker(){
                     exit 1
                 else
                     log "$TXT_DOCKER_INSTALL_SUCCESS"
-                    systemctl enable docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+                    systemctl enable docker 2>&1 | tee -a ${LOG_FILE}
                     configure_accelerator
                 fi
             else
@@ -270,10 +271,10 @@ function Install_Docker(){
             log "$TXT_REGIONS_OTHER_THAN_CHINA"
             export DOWNLOAD_URL="https://download.docker.com"
             curl -fsSL "https://get.docker.com" -o get-docker.sh
-            sh get-docker.sh 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            sh get-docker.sh 2>&1 | tee -a ${LOG_FILE}
 
             log "$TXT_DOCKER_START_NOTICE"
-            systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${LOG_FILE}
 
                 docker_config_folder="/etc/docker"
                 if [[ ! -d "$docker_config_folder" ]];then
@@ -289,7 +290,6 @@ function Install_Docker(){
             else
                 log "$TXT_DOCKER_INSTALL_SUCCESS"
             fi
-        fi
     fi
 }
 
@@ -544,8 +544,10 @@ function Init_Panel(){
     install_and_configure
 
     for attempt in $(seq 1 $MAX_ATTEMPTS); do
-        if [[ $(command -v opkg) && $(/etc/init.d/1paneld status 2>&1) == *running* ]] || \
-        [[ $(command -v systemctl) && $(systemctl status 1panel 2>&1) =~ Active.*running ]]; then
+        if [[ $(command -v opkg) && $(/etc/init.d/1paneld status 2>&1) == *running* ]]; then
+            log "$TXT_START_PANEL_SERVICE"
+            break
+        elif [[ $(command -v systemctl) && $(systemctl status 1panel 2>&1) =~ Active.*running ]]; then
             log "$TXT_START_PANEL_SERVICE"
             break
         else
@@ -587,24 +589,18 @@ function Get_Ip(){
 }
 
 function Show_Result(){
-    log ""
     log "$TXT_THANK_YOU_WAITING"
-    log ""
     log "$TXT_BROWSER_ACCESS_PANEL"
     log "$TXT_EXTERNAL_ADDRESS http://$PUBLIC_IP:$PANEL_PORT/$PANEL_ENTRANCE"
     log "$TXT_INTERNAL_ADDRESS http://$LOCAL_IP:$PANEL_PORT/$PANEL_ENTRANCE"
     log "$TXT_PANEL_USER $PANEL_USERNAME"
     log "$TXT_PANEL_PASSWORD $PANEL_PASSWORD"
-    log ""
     log "$TXT_PROJECT_OFFICIAL_WEBSITE"
     log "$TXT_PROJECT_DOCUMENTATION"
     log "$TXT_PROJECT_REPOSITORY"
     log "$TXT_COMMUNITY"
-    log ""
     log "$TXT_OPEN_PORT_SECURITY_GROUP $PANEL_PORT"
-    log ""
     log "$TXT_REMEMBER_YOUR_PASSWORD"
-    log ""
     log "================================================================"
     sed -i -e "s#面板密码:.*#面板密码:${PASSWORD_MASK}#g" ${LOG_FILE}
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl

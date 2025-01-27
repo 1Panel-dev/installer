@@ -100,7 +100,7 @@ function uninstall() {
         if which opkg &>/dev/null;then
             service 1paneld stop
             echo -e "2) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
-            rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} 
+            rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel,lang} 
             echo -e "3) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
             /etc/init.d/1paneld disable 
             rm -rf /etc/init.d/1paneld
@@ -108,12 +108,12 @@ function uninstall() {
             systemctl stop 1panel.service
             systemctl disable 1panel.service >/dev/null 2>&1
             echo -e "2) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
-            rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service
+            rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service /usr/local/bin/lang
             echo -e "3) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
             systemctl daemon-reload
             systemctl reset-failed
         fi
-        echo -e "$TXT_PANEL_SERVICE_UNINSTALL_SUCCESS"
+        echo -e "04) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_SUCCESS"
     else
         exit 0
     fi
