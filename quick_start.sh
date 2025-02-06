@@ -77,8 +77,8 @@ function prepare_download_urls() {
 download_file() {
     local file_url=$1
     local file_name=$2
-    echo "正在下载: $file_url"
-    curl -sSL --fail --retry 3 --output "$file_name" "$file_url"
+    # echo "正在下载: $file_url"
+    curl -SL --fail --retry 3 --output "$file_name" "$file_url"
     if [ $? -ne 0 ]; then
         echo "下载失败，请检查网络或稍候重试..."
         exit 1
