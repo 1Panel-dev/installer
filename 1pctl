@@ -113,7 +113,7 @@ function uninstall() {
             systemctl daemon-reload
             systemctl reset-failed
         fi
-        echo -e "04) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_SUCCESS"
+        echo -e "4) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_SUCCESS"
     else
         exit 0
     fi
