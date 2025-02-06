@@ -437,36 +437,41 @@ function Set_Username(){
 
 
 function passwd() {
-    charcount='0'
-    reply=''
-    while :; do
-        char=$(
-            stty cbreak -echo
-            dd if=/dev/tty bs=1 count=1 2>/dev/null
-            stty -cbreak echo
-        )
-        case $char in
-        "$(printenv '\000')")
-            break
-            ;;
-        "$(printf '\177')" | "$(printf '\b')")
-            if [ $charcount -gt 0 ]; then
-                printf '\b \b'
-                reply="${reply%?}"
-                charcount=$((charcount - 1))
-            else
-                printf ''
-            fi
-            ;;
-        "$(printf '\033')") ;;
-        *)
-            printf '*'
-            reply="${reply}${char}"
-            charcount=$((charcount + 1))
-            ;;
-        esac
-    done
-    printf '\n' >&2
+    if which stty >/dev/null 2>&1; then
+        charcount='0'
+        reply=''
+        while :; do
+            char=$(
+                stty cbreak -echo
+                dd if=/dev/tty bs=1 count=1 2>/dev/null
+                stty -cbreak echo
+            )
+            case $char in
+            "$(printenv '\000')")
+                break
+                ;;
+            "$(printf '\177')" | "$(printf '\b')")
+                if [ $charcount -gt 0 ]; then
+                    printf '\b \b'
+                    reply="${reply%?}"
+                    charcount=$((charcount - 1))
+                else
+                    printf ''
+                fi
+                ;;
+            "$(printf '\033')") ;;
+            *)
+                printf '*'
+                reply="${reply}${char}"
+                charcount=$((charcount + 1))
+                ;;
+            esac
+        done
+        printf '\n' >&2
+    else
+        read -s -p "Enter Password: " reply
+        printf '\n' >&2
+    fi
 }
 
 function Set_Password(){
@@ -501,7 +506,13 @@ init_configure() {
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
     sed -i -e "s#LANGUAGE=.*#LANGUAGE=${selected_lang}#g" /usr/local/bin/1pctl
+    if [ -f "./GeoIP.mmdb" ]; then
+        mkdir -p $RUN_BASE_DIR/geo/
+        cp -r ./GeoIP.mmdb $RUN_BASE_DIR/geo/
+        cp -r ./lang /usr/local/bin
+    fi
     }
+    
 install_and_configure() {
     if which opkg &>/dev/null; then
         mkdir -p /usr/local/bin
@@ -589,18 +600,24 @@ function Get_Ip(){
 }
 
 function Show_Result(){
+    log ""
     log "$TXT_THANK_YOU_WAITING"
+    log ""
     log "$TXT_BROWSER_ACCESS_PANEL"
     log "$TXT_EXTERNAL_ADDRESS http://$PUBLIC_IP:$PANEL_PORT/$PANEL_ENTRANCE"
     log "$TXT_INTERNAL_ADDRESS http://$LOCAL_IP:$PANEL_PORT/$PANEL_ENTRANCE"
     log "$TXT_PANEL_USER $PANEL_USERNAME"
     log "$TXT_PANEL_PASSWORD $PANEL_PASSWORD"
+    log ""
     log "$TXT_PROJECT_OFFICIAL_WEBSITE"
     log "$TXT_PROJECT_DOCUMENTATION"
     log "$TXT_PROJECT_REPOSITORY"
     log "$TXT_COMMUNITY"
+    log ""
     log "$TXT_OPEN_PORT_SECURITY_GROUP $PANEL_PORT"
+    log ""
     log "$TXT_REMEMBER_YOUR_PASSWORD"
+    log ""
     log "================================================================"
     sed -i -e "s#面板密码:.*#面板密码:${PASSWORD_MASK}#g" ${LOG_FILE}
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl
