@@ -18,6 +18,14 @@ else
     LANGUAGE=en
 fi
 
+# 检查是否是root用户，避免多次要求输入密码
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "$TXT_RUN_AS_ROOT"
+        exit 1
+    fi
+}
+
 function usage() {
     echo "$PANEL_CONTROL_SCRIPT"
     echo
@@ -40,40 +48,76 @@ function usage() {
 }
 
 function status() {
-    systemctl status 1panel.service
+    if ! service 1paneld status; then
+        systemctl status 1panel.service
+        if [[ $? -ne 0 ]]; then
+            echo "$TXT_PANEL_SERVICE_STATUS : $TXT_FAIELD_MESSAGE"
+            exit 1
+        fi
+    fi
 }
 
 function start() {
-    systemctl start 1panel.service
-    status
+    if ! service 1paneld start; then
+        systemctl start 1panel.service
+        if [[ $? -ne 0 ]]; then
+            echo "$TXT_PANEL_SERVICE_START_ERROR"
+            exit 1
+        fi
+    fi
+    echo "$TXT_PANEL_SERVICE_START_SUCCESS"
 }
 
 function stop() {
-    systemctl stop 1panel.service
-    status
+    if ! service 1paneld stop; then
+        systemctl stop 1panel.service
+        if [[ $? -ne 0 ]]; then
+            echo "$TXT_PANEL_SERVICE_STOP $TXT_FAIELD_MESSAGE"
+            exit 1
+        fi
+    fi
+    echo "$TXT_PANEL_SERVICE_STOP $TXT_SUCCESS_MESSAGE"
 }
 
 function restart() {
-    systemctl restart 1panel.service
-    status
+    if ! service 1paneld restart; then
+        systemctl restart 1panel.service
+        if [[ $? -ne 0 ]]; then
+            echo "$TXT_PANEL_SERVICE_RESTART $$TXT_FAIELD_MESSAGE"
+            exit 1
+        fi
+    fi
+    echo "$TXT_PANEL_SERVICE_RESTART $TXT_SUCCESS_MESSAGE"
 }
 
 function uninstall() {
+    check_root
     read -p "$TXT_PANEL_SERVICE_UNINSTALL_NOTICE : " yn
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
         echo -e "$TXT_PANEL_SERVICE_UNINSTALL_START"
-        systemctl stop 1panel.service
-        systemctl disable 1panel.service >/dev/null 2>&1
-        echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
-        rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service
-        systemctl daemon-reload
-        systemctl reset-failed
-        echo -e "$TXT_PANEL_SERVICE_UNINSTALL_SUCCESS"
+        echo -e ""
+        echo -e "1) $TXT_PANEL_SERVICE_UNINSTALL_STOP"
+        if which opkg &>/dev/null;then
+            service 1paneld stop
+            echo -e "2) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
+            rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel,lang} 
+            echo -e "3) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
+            /etc/init.d/1paneld disable 
+            rm -rf /etc/init.d/1paneld
+        else
+            systemctl stop 1panel.service
+            systemctl disable 1panel.service >/dev/null 2>&1
+            echo -e "2) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
+            rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service /usr/local/bin/lang
+            echo -e "3) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
+            systemctl daemon-reload
+            systemctl reset-failed
+        fi
+        echo -e "4) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_SUCCESS"
     else
         exit 0
     fi
 }
-
 function user-info() {
     1panel -l $LANGUAGE user-info
 }
@@ -97,8 +141,11 @@ function listen-ip() {
 function restore() {
     read -p "$TXT_PANEL_SERVICE_RESTORE_NOTICE : " yn
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
+        echo -e ""
         1panel -l $LANGUAGE restore
+        if ! service 1paneld reload; then
         systemctl daemon-reload
+        fi
         restart
         1panel -l $LANGUAGE version
     else
