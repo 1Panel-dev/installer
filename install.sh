@@ -52,20 +52,24 @@ else
 fi
 clear
 
+LOG_FILE=${CURRENT_DIR}/install.log
+PASSWORD_MASK="**********"
+
 function log() {
-    message="[1Panel Log]: $1 "
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    message="[1Panel ${timestamp} install Log]: $1 "
     case "$1" in
         *"$TXT_RUN_AS_ROOT"*)
-            echo -e "${RED}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${RED}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
         *"$TXT_SUCCESS_MESSAGE"* )
-            echo -e "${GREEN}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${GREEN}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
         *"$TXT_IGNORE_MESSAGE"*|*"$TXT_SKIP_MESSAGE"* )
-            echo -e "${YELLOW}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${YELLOW}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
         * )
-            echo -e "${BLUE}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${BLUE}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
     esac
 }
@@ -154,23 +158,34 @@ function Install_Docker(){
         docker_version=$(docker --version | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
         major_version=${docker_version%%.*}
         minor_version=${docker_version##*.}
-        if [[ $major_version -lt 20 ]]; then
-            log "$TXT_LOW_DOCKER_VERSION"
-        fi
+        if [[ $(which opkg &>/dev/null && service dockerd start && service dockerd status 2>&1 || systemctl start docker && systemctl status docker 2>&1) == *running* ]]; then
+            log "$TXT_DOCKER_RESTARTED"
 
-        if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
-            configure_accelerator
+        else
+            if [[ $major_version -lt 20 ]]; then
+                log "$TXT_LOW_DOCKER_VERSION"
+            fi
+
+            if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
+                configure_accelerator
+            fi
         fi
     else
         log "$TXT_DOCKER_INSTALL_ONLINE"
-
-        if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
-            sources=(
-                "https://mirrors.aliyun.com/docker-ce"
-                "https://mirrors.tencent.com/docker-ce"
-                "https://mirrors.163.com/docker-ce"
-                "https://mirrors.cernet.edu.cn/docker-ce"
-            )
+        if  command -v opkg &>/dev/null;then
+            log "... 当前为busybox环境，尝试使用 opkg 安装 docker"
+            opkg update
+            opkg install luci-i18n-dockerman-zh-cn
+            opkg install zoneinfo-asia
+            service system restart
+        else
+            if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
+                sources=(
+                    "https://mirrors.aliyun.com/docker-ce"
+                    "https://mirrors.tencent.com/docker-ce"
+                    "https://mirrors.163.com/docker-ce"
+                    "https://mirrors.cernet.edu.cn/docker-ce"
+                )
 
             docker_install_scripts=(
                 "https://get.docker.com"
@@ -245,7 +260,7 @@ function Install_Docker(){
                     exit 1
                 else
                     log "$TXT_DOCKER_INSTALL_SUCCESS"
-                    systemctl enable docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+                    systemctl enable docker 2>&1 | tee -a ${LOG_FILE}
                     configure_accelerator
                 fi
             else
@@ -256,15 +271,17 @@ function Install_Docker(){
             log "$TXT_REGIONS_OTHER_THAN_CHINA"
             export DOWNLOAD_URL="https://download.docker.com"
             curl -fsSL "https://get.docker.com" -o get-docker.sh
-            sh get-docker.sh 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            sh get-docker.sh 2>&1 | tee -a ${LOG_FILE}
 
             log "$TXT_DOCKER_START_NOTICE"
-            systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${LOG_FILE}
 
-            docker_config_folder="/etc/docker"
-            if [[ ! -d "$docker_config_folder" ]];then
-                mkdir -p "$docker_config_folder"
+                docker_config_folder="/etc/docker"
+                if [[ ! -d "$docker_config_folder" ]];then
+                    mkdir -p "$docker_config_folder"
+                fi
             fi
+        fi
 
             docker version >/dev/null 2>&1
             if [[ $? -ne 0 ]]; then
@@ -273,7 +290,6 @@ function Install_Docker(){
             else
                 log "$TXT_DOCKER_INSTALL_SUCCESS"
             fi
-        fi
     fi
 }
 
@@ -281,24 +297,23 @@ function Install_Compose(){
     docker-compose version >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
         log "$TXT_DOCKER_COMPOSE_INSTALL_ONLINE"
-        
-        arch=$(uname -m)
-		if [ "$arch" == 'armv7l' ]; then
-			arch='armv7'
-		fi
-
-        if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
-		    curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-"$arch" -o /usr/local/bin/docker-compose 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+        if which opkg &>/dev/null;then
+            log "... 当前环境为busybox，尝试使用 opkg 安装 docker-compose"
+            opkg update || log "软件包更新失败，请检查网络或稍后重试"
+            opkg install docker-compose
         else
-            curl -L https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-"$arch" -o /usr/local/bin/docker-compose 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            arch=$(uname -m)
+            if [ "$arch" == 'armv7l' ]; then
+                arch='armv7'
+            fi
+            curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-$arch -o /usr/local/bin/docker-compose 2>&1 | tee -a ${LOG_FILE}
+            if [[ ! -f /usr/local/bin/docker-compose ]];then
+                log "docker-compose 下载失败，请稍候重试"
+                exit 1
+            fi
+            chmod +x /usr/local/bin/docker-compose
+            ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
         fi
-
-        if [[ ! -f /usr/local/bin/docker-compose ]];then
-            log "$TXT_DOCKER_COMPOSE_DOWNLOAD_FAIL"
-            exit 1
-        fi
-        chmod +x /usr/local/bin/docker-compose
-        ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 
         docker-compose version >/dev/null 2>&1
         if [[ $? -ne 0 ]]; then
@@ -337,8 +352,12 @@ function Set_Port(){
             log "$TXT_INPUT_PORT_NUMBER"
             continue
         fi
-
-        if command -v ss >/dev/null 2>&1; then
+        if command -v lsof >/dev/null 2>&1; then 
+	        if lsof -i:$PANEL_PORT >/dev/null 2>&1; then
+                log "$TXT_PORT_OCCUPIED $PANEL_PORT"
+                continue
+            fi
+        elif command -v ss >/dev/null 2>&1; then
             if ss -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
                 log "$TXT_PORT_OCCUPIED $PANEL_PORT"
                 continue
@@ -418,36 +437,41 @@ function Set_Username(){
 
 
 function passwd() {
-    charcount='0'
-    reply=''
-    while :; do
-        char=$(
-            stty cbreak -echo
-            dd if=/dev/tty bs=1 count=1 2>/dev/null
-            stty -cbreak echo
-        )
-        case $char in
-        "$(printenv '\000')")
-            break
-            ;;
-        "$(printf '\177')" | "$(printf '\b')")
-            if [ $charcount -gt 0 ]; then
-                printf '\b \b'
-                reply="${reply%?}"
-                charcount=$((charcount - 1))
-            else
-                printf ''
-            fi
-            ;;
-        "$(printf '\033')") ;;
-        *)
-            printf '*'
-            reply="${reply}${char}"
-            charcount=$((charcount + 1))
-            ;;
-        esac
-    done
-    printf '\n' >&2
+    if which stty >/dev/null 2>&1; then
+        charcount='0'
+        reply=''
+        while :; do
+            char=$(
+                stty cbreak -echo
+                dd if=/dev/tty bs=1 count=1 2>/dev/null
+                stty -cbreak echo
+            )
+            case $char in
+            "$(printenv '\000')")
+                break
+                ;;
+            "$(printf '\177')" | "$(printf '\b')")
+                if [ $charcount -gt 0 ]; then
+                    printf '\b \b'
+                    reply="${reply%?}"
+                    charcount=$((charcount - 1))
+                else
+                    printf ''
+                fi
+                ;;
+            "$(printf '\033')") ;;
+            *)
+                printf '*'
+                reply="${reply}${char}"
+                charcount=$((charcount + 1))
+                ;;
+            esac
+        done
+        printf '\n' >&2
+    else
+        read -s -p "Enter Password: " reply
+        printf '\n' >&2
+    fi
 }
 
 function Set_Password(){
@@ -470,21 +494,11 @@ function Set_Password(){
     done
 }
 
-function Init_Panel(){
-    log "$TXT_CONFIGURE_PANEL_SERVICE"
-
-    RUN_BASE_DIR=$PANEL_BASE_DIR/1panel
-    mkdir -p "$RUN_BASE_DIR"
-    rm -rf "$RUN_BASE_DIR:?/*"
-
-    cd "${CURRENT_DIR}" || exit
-
+init_configure() {
     cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel
-    if [[ ! -f /usr/bin/1panel ]]; then
-        ln -s /usr/local/bin/1panel /usr/bin/1panel >/dev/null 2>&1
-    fi
-
+    ln -s /usr/local/bin/1panel /usr/bin/1panel >/dev/null 2>&1
     cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
+    ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
     sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_PORT=.*#ORIGINAL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_USERNAME=.*#ORIGINAL_USERNAME=${PANEL_USERNAME}#g" /usr/local/bin/1pctl
@@ -492,44 +506,90 @@ function Init_Panel(){
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
     sed -i -e "s#LANGUAGE=.*#LANGUAGE=${selected_lang}#g" /usr/local/bin/1pctl
-    if [[ ! -f /usr/bin/1pctl ]]; then
-        ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
+    if [ -f "./GeoIP.mmdb" ]; then
+        mkdir -p $RUN_BASE_DIR/geo/
+        cp -r ./GeoIP.mmdb $RUN_BASE_DIR/geo/
+        cp -r ./lang /usr/local/bin
     fi
+    }
+    
+install_and_configure() {
+    if which opkg &>/dev/null; then
+        mkdir -p /usr/local/bin
+	init_configure
+        echo "#!/bin/sh /etc/rc.common
+USE_PROCD=1
 
-    mkdir $RUN_BASE_DIR/geo/
-    cp -r ./GeoIP.mmdb $RUN_BASE_DIR/geo/
+START=95
+STOP=15
+NAME=1panel
+start_service() {
+    procd_open_instance
+    procd_set_param command 1panel
+    procd_set_param stdout 0 # 默认设置不输出系统日志，如为1，在系统日志可看到1panel前端响应信息
+    procd_set_param stderr 1
+    procd_close_instance
+    }
+" > /etc/init.d/1paneld
+        # curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/etc/init.d/1paneld -o /etc/init.d/1paneld
+        chmod +x /etc/init.d/1paneld
+        /etc/init.d/1paneld enable && /etc/init.d/1paneld reload 2>&1 | tee -a ${LOG_FILE}
+        /etc/init.d/1paneld start | tee -a ${LOG_FILE}
+    else
+    	init_configure
+        cp ./1panel.service /etc/systemd/system
+        systemctl enable 1panel.service; systemctl daemon-reload 2>&1 | tee -a ${LOG_FILE}
+        systemctl start 1panel.service | tee -a ${LOG_FILE}
+    fi
+}
 
-    cp -r ./lang /usr/local/bin
-    cp ./1panel.service /etc/systemd/system
+function Init_Panel(){
+    log "$TXT_CONFIGURE_PANEL_SERVICE"
+    MAX_ATTEMPTS=5
+    RUN_BASE_DIR=$PANEL_BASE_DIR/1panel
+    mkdir -p $RUN_BASE_DIR
+    rm -rf $RUN_BASE_DIR/* 2>/dev/null
 
-    systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a "${CURRENT_DIR}"/install.log
-    log "$TXT_START_PANEL_SERVICE"
-    systemctl start 1panel | tee -a "${CURRENT_DIR}"/install.log
+    cd ${CURRENT_DIR}
 
-    for b in {1..30}
-    do
-        sleep 3
-        service_status=$(systemctl status 1panel 2>&1 | grep Active)
-        if [[ $service_status == *running* ]];then
-            log "$TXT_PANEL_SERVICE_START_SUCCESS"
-            break;
+    install_and_configure
+
+    for attempt in $(seq 1 $MAX_ATTEMPTS); do
+        if [[ $(command -v opkg) && $(/etc/init.d/1paneld status 2>&1) == *running* ]]; then
+            log "$TXT_START_PANEL_SERVICE"
+            break
+        elif [[ $(command -v systemctl) && $(systemctl status 1panel 2>&1) =~ Active.*running ]]; then
+            log "$TXT_START_PANEL_SERVICE"
+            break
         else
-            log "$TXT_PANEL_SERVICE_START_ERROR"
-            exit 1
+            if [ $attempt -eq $MAX_ATTEMPTS ]; then
+                log "$TXT_PANEL_SERVICE_START_ERROR"
+                exit 1
+            else
+                log "1Panel 服务尚未启动，将在 $((MAX_ATTEMPTS - attempt)) 秒后重试。"
+                sleep 2
+            fi
         fi
     done
-    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=\*\*\*\*\*\*\*\*\*\*#g" /usr/local/bin/1pctl
 }
+
 
 function Get_Ip(){
     active_interface=$(ip route get 8.8.8.8 | awk 'NR==1 {print $5}')
+    PUBLIC_IP=`curl -s https://api64.ipify.org`
     if [[ -z $active_interface ]]; then
         LOCAL_IP="127.0.0.1"
+    elif [[ $active_interface =~ pppoe ]]; then
+        PUBLIC_IP=$(ip -4 addr show dev "$active_interface" |  grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}')
+        LOCAL_IP=$(ip -4 addr show | grep -E 'br-lan.*' | grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}')
     else
-        LOCAL_IP=$(ip -4 addr show dev "$active_interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+        if which opkg &>/dev/null;then
+            LOCAL_IP=$(ip -4 addr show | grep -E 'br-lan.*' | grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}' | awk -F '/' '{print $1}')
+        else
+            LOCAL_IP=`ip -4 addr show dev "$active_interface" |  grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}'`
+        fi
     fi
 
-    PUBLIC_IP=$(curl -s https://api64.ipify.org)
     if [[ -z "$PUBLIC_IP" ]]; then
         PUBLIC_IP="N/A"
     fi
@@ -559,6 +619,8 @@ function Show_Result(){
     log "$TXT_REMEMBER_YOUR_PASSWORD"
     log ""
     log "================================================================"
+    sed -i -e "s#面板密码:.*#面板密码:${PASSWORD_MASK}#g" ${LOG_FILE}
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl
 }
 
 function main(){
