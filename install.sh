@@ -88,7 +88,7 @@ function Check_Root() {
 }
 
 function Prepare_System(){
-    if which 1panel >/dev/null 2>&1; then
+    if which 1panel-core >/dev/null 2>&1; then
         log "$TXT_PANEL_ALREADY_INSTALLED"
         exit 1
     fi
@@ -116,7 +116,7 @@ function Set_Dir(){
     fi
 }
 
-ACCELERATOR_URL="https://docker.1panelproxy.com"
+ACCELERATOR_URL="https://docker.1panel.live"
 DAEMON_JSON="/etc/docker/daemon.json"
 BACKUP_FILE="/etc/docker/daemon.json.1panel_bak"
 
@@ -484,9 +484,13 @@ function Init_Panel(){
 
     cd "${CURRENT_DIR}" || exit
 
-    cp ./1panel /usr/local/bin && chmod +x /usr/local/bin/1panel
-    if [[ ! -f /usr/bin/1panel ]]; then
-        ln -s /usr/local/bin/1panel /usr/bin/1panel >/dev/null 2>&1
+    cp ./1panel-core /usr/local/bin && chmod +x /usr/local/bin/1panel-core
+    if [[ ! -f /usr/bin/1panel-core ]]; then
+        ln -s /usr/local/bin/1panel-core /usr/bin/1panel-core >/dev/null 2>&1
+    fi
+    cp ./1panel-agent /usr/local/bin && chmod +x /usr/local/bin/1panel-agent
+    if [[ ! -f /usr/bin/1panel-agent ]]; then
+        ln -s /usr/local/bin/1panel-agent /usr/bin/1panel-agent >/dev/null 2>&1
     fi
 
     cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
@@ -505,16 +509,18 @@ function Init_Panel(){
     cp -r ./GeoIP.mmdb $RUN_BASE_DIR/geo/
 
     cp -r ./lang /usr/local/bin
-    cp ./1panel.service /etc/systemd/system
+    cp ./1panel-core.service /etc/systemd/system
+    cp ./1panel-agent.service /etc/systemd/system
 
-    systemctl enable 1panel; systemctl daemon-reload 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+    systemctl enable 1panel-agent.service; systemctl enable 1panel-core.service; systemctl daemon-reload 2>&1 | tee -a "${CURRENT_DIR}"/install.log
     log "$TXT_START_PANEL_SERVICE"
-    systemctl start 1panel | tee -a "${CURRENT_DIR}"/install.log
+    systemctl start 1panel-agent | tee -a "${CURRENT_DIR}"/install.log
+    systemctl start 1panel-core | tee -a "${CURRENT_DIR}"/install.log
 
     for b in {1..30}
     do
         sleep 3
-        service_status=$(systemctl status 1panel 2>&1 | grep Active)
+        service_status=$(systemctl status 1panel-core 2>&1 | grep Active)
         if [[ $service_status == *running* ]];then
             log "$TXT_PANEL_SERVICE_START_SUCCESS"
             break;

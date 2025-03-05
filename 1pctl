@@ -40,21 +40,24 @@ function usage() {
 }
 
 function status() {
-    systemctl status 1panel.service
+    systemctl status 1panel-core.service
 }
 
 function start() {
-    systemctl start 1panel.service
+    systemctl start 1panel-agent.service
+    systemctl start 1panel-core.service
     status
 }
 
 function stop() {
-    systemctl stop 1panel.service
+    systemctl stop 1panel-agent.service
+    systemctl stop 1panel-core.service
     status
 }
 
 function restart() {
-    systemctl restart 1panel.service
+    systemctl restart 1panel-agent.service
+    systemctl restart 1panel-core.service
     status
 }
 
@@ -62,10 +65,12 @@ function uninstall() {
     read -p "$TXT_PANEL_SERVICE_UNINSTALL_NOTICE : " yn
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
         echo -e "$TXT_PANEL_SERVICE_UNINSTALL_START"
-        systemctl stop 1panel.service
-        systemctl disable 1panel.service >/dev/null 2>&1
+        systemctl stop 1panel-core.service
+        systemctl stop 1panel-agent.service
+        systemctl disable 1panel-core.service >/dev/null 2>&1
+        systemctl disable 1panel-agent.service >/dev/null 2>&1
         echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
-        rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service
+        rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel-core,1panel-agent} /etc/systemd/system/{1panel-core.service,1panel-agent.service}
         systemctl daemon-reload
         systemctl reset-failed
         echo -e "$TXT_PANEL_SERVICE_UNINSTALL_SUCCESS"
