@@ -70,7 +70,7 @@ function uninstall() {
         systemctl disable 1panel-core.service >/dev/null 2>&1
         systemctl disable 1panel-agent.service >/dev/null 2>&1
         echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
-        rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel-core,1panel-agent} /etc/systemd/system/{1panel-core.service,1panel-agent.service}
+        rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel-core,1panel-agent} /usr/bin/{1panel,1panel-core,1panel-agent} /etc/systemd/system/{1panel-core.service,1panel-agent.service}
         systemctl daemon-reload
         systemctl reset-failed
         echo -e "$TXT_PANEL_SERVICE_UNINSTALL_SUCCESS"

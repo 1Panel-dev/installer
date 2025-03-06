@@ -485,6 +485,9 @@ function Init_Panel(){
     cd "${CURRENT_DIR}" || exit
 
     cp ./1panel-core /usr/local/bin && chmod +x /usr/local/bin/1panel-core
+    if [[ ! -f /usr/bin/1panel ]]; then
+        ln -s /usr/local/bin/1panel-core /usr/bin/1panel >/dev/null 2>&1
+    fi
     if [[ ! -f /usr/bin/1panel-core ]]; then
         ln -s /usr/local/bin/1panel-core /usr/bin/1panel-core >/dev/null 2>&1
     fi
