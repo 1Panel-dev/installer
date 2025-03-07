@@ -61,6 +61,7 @@ TXT_SET_PANEL_PASSWORD="Definir senha do painel 1Panel, pressione Enter para con
 TXT_INPUT_PASSWORD_RULE="Erro: A senha do painel suporta apenas letras, números, caracteres especiais (!@#$%*_,.?), com comprimento de 8-30 caracteres"
 TXT_CONFIGURE_PANEL_SERVICE="Configurando o serviço 1Panel"
 TXT_START_PANEL_SERVICE="Iniciando o serviço 1Panel"
+TXT_SERVICE_RETRY_MSG="Falha ao iniciar o serviço, tentando novamente..."
 TXT_PANEL_SERVICE_START_SUCCESS="Serviço 1Panel iniciado com sucesso!"
 TXT_PANEL_SERVICE_START_ERROR="Erro ao iniciar o serviço 1Panel!"
 TXT_THANK_YOU_WAITING="================= Obrigado pela sua paciência, a instalação está completa =================="
