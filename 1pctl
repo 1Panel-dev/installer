@@ -47,47 +47,31 @@ function usage() {
     echo "  restore             $TXT_PANEL_SERVICE_RESTORE"
 }
 
-function status() {
-    if ! service 1paneld status; then
-        systemctl status 1panel.service
-        if [[ $? -ne 0 ]]; then
-            echo "$TXT_PANEL_SERVICE_STATUS : $TXT_FAIELD_MESSAGE"
+_service_cmd() {
+    local cmd=$1 success_msg=$2 error_msg=$3
+    if ! service 1paneld "$cmd" 2>/dev/null; then
+        if ! systemctl "$cmd" 1panel.service; then
+            echo "$error_msg"
             exit 1
         fi
     fi
+    echo "$success_msg"
+}
+
+function status() {
+    _service_cmd "status" "" "$TXT_PANEL_SERVICE_STATUS : $TXT_FAILED_MESSAGE"
 }
 
 function start() {
-    if ! service 1paneld start; then
-        systemctl start 1panel.service
-        if [[ $? -ne 0 ]]; then
-            echo "$TXT_PANEL_SERVICE_START_ERROR"
-            exit 1
-        fi
-    fi
-    echo "$TXT_PANEL_SERVICE_START_SUCCESS"
+    _service_cmd "start" "$TXT_PANEL_SERVICE_START_SUCCESS" "$TXT_PANEL_SERVICE_START_ERROR"
 }
 
 function stop() {
-    if ! service 1paneld stop; then
-        systemctl stop 1panel.service
-        if [[ $? -ne 0 ]]; then
-            echo "$TXT_PANEL_SERVICE_STOP $TXT_FAIELD_MESSAGE"
-            exit 1
-        fi
-    fi
-    echo "$TXT_PANEL_SERVICE_STOP $TXT_SUCCESS_MESSAGE"
+    _service_cmd "stop" "$TXT_PANEL_SERVICE_STOP $TXT_SUCCESS_MESSAGE" "$TXT_PANEL_SERVICE_STOP $TXT_FAILED_MESSAGE"
 }
 
 function restart() {
-    if ! service 1paneld restart; then
-        systemctl restart 1panel.service
-        if [[ $? -ne 0 ]]; then
-            echo "$TXT_PANEL_SERVICE_RESTART $$TXT_FAIELD_MESSAGE"
-            exit 1
-        fi
-    fi
-    echo "$TXT_PANEL_SERVICE_RESTART $TXT_SUCCESS_MESSAGE"
+    _service_cmd "restart" "$TXT_PANEL_SERVICE_RESTART $TXT_SUCCESS_MESSAGE" "$TXT_PANEL_SERVICE_RESTART $TXT_FAILED_MESSAGE"
 }
 
 function uninstall() {
