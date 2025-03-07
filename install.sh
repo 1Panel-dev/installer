@@ -173,7 +173,7 @@ function Install_Docker(){
     else
         log "$TXT_DOCKER_INSTALL_ONLINE"
         if  command -v opkg &>/dev/null;then
-            log "... 当前为busybox环境，尝试使用 opkg 安装 docker"
+            log $TXT_INSTALL_DOCKER_ONLINE
             opkg update
             opkg install luci-i18n-dockerman-zh-cn
             opkg install zoneinfo-asia
@@ -298,8 +298,7 @@ function Install_Compose(){
     if [[ $? -ne 0 ]]; then
         log "$TXT_DOCKER_COMPOSE_INSTALL_ONLINE"
         if which opkg &>/dev/null;then
-            log "... 当前环境为busybox，尝试使用 opkg 安装 docker-compose"
-            opkg update || log "软件包更新失败，请检查网络或稍后重试"
+            opkg update || log $TXT_DOCKER_COMPOSE_DOWNLOAD_FAIL
             opkg install docker-compose
         else
             arch=$(uname -m)
@@ -308,7 +307,7 @@ function Install_Compose(){
             fi
             curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-$arch -o /usr/local/bin/docker-compose 2>&1 | tee -a ${LOG_FILE}
             if [[ ! -f /usr/local/bin/docker-compose ]];then
-                log "docker-compose 下载失败，请稍候重试"
+                log $TXT_DOCKER_COMPOSE_DOWNLOAD_FAIL
                 exit 1
             fi
             chmod +x /usr/local/bin/docker-compose
@@ -531,7 +530,7 @@ start_service() {
     procd_close_instance
     }
 " > /etc/init.d/1paneld
-        # curl -sSL https://raw.githubusercontent.com/gcsong023/wrt_installer/wrt_1panel/etc/init.d/1paneld -o /etc/init.d/1paneld
+
         chmod +x /etc/init.d/1paneld
         /etc/init.d/1paneld enable && /etc/init.d/1paneld reload 2>&1 | tee -a ${LOG_FILE}
         /etc/init.d/1paneld start | tee -a ${LOG_FILE}
@@ -566,7 +565,7 @@ function Init_Panel(){
                 log "$TXT_PANEL_SERVICE_START_ERROR"
                 exit 1
             else
-                log "1Panel 服务尚未启动，将在 $((MAX_ATTEMPTS - attempt)) 秒后重试。"
+                log $TXT_SERVICE_RETRY_MSG  $((MAX_ATTEMPTS - attempt)) 
                 sleep 2
             fi
         fi
@@ -619,7 +618,7 @@ function Show_Result(){
     log "$TXT_REMEMBER_YOUR_PASSWORD"
     log ""
     log "================================================================"
-    sed -i -e "s#面板密码:.*#面板密码:${PASSWORD_MASK}#g" ${LOG_FILE}
+    sed -i -e "s#面板密码:.*#面板密码: ${PASSWORD_MASK}#g" ${LOG_FILE}
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl
 }
 
