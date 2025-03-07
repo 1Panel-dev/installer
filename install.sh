@@ -136,11 +136,6 @@ function create_daemon_json() {
 function configure_accelerator() {
     read -p "$TXT_ACCELERATION_CONFIG_ADD " configure_accelerator
     if [[ "$configure_accelerator" == "y" ]]; then
-        if ping -c 1 mirror.ccs.tencentyun.com &>/dev/null; then
-            ACCELERATOR_URL="https://mirror.ccs.tencentyun.com"
-            log "$TXT_USING_TENCENT_MIRROR"
-        fi
-
         if [ -f "$DAEMON_JSON" ]; then
             log "$TXT_ACCELERATION_CONFIG_EXISTS ${BACKUP_FILE}."
             cp "$DAEMON_JSON" "$BACKUP_FILE"
@@ -471,9 +466,10 @@ function passwd() {
                 ;;
             esac
         done
+        log "$TXT_SET_PANEL_PASSWORD $DEFAULT_PASSWORD): "
         printf '\n' >&2
     else
-        read -s -p "Enter Password: " reply
+        read -s -p "$TXT_SET_PANEL_PASSWORD: $DEFAULT_PASSWORD):" reply
         printf '\n' >&2
     fi
 }
@@ -482,7 +478,7 @@ function Set_Password(){
     DEFAULT_PASSWORD=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
 
     while true; do
-        log "$TXT_SET_PANEL_PASSWORD $DEFAULT_PASSWORD): "
+        
         passwd
         PANEL_PASSWORD=$reply
         if [[ "$PANEL_PASSWORD" == "" ]];then
@@ -623,7 +619,7 @@ function Show_Result(){
     log "$TXT_REMEMBER_YOUR_PASSWORD"
     log ""
     log "================================================================"
-    sed -i -e "s#面板密码:.*#面板密码: ${PASSWORD_MASK}#g" ${LOG_FILE}
+    sed -i -e "s#面板密码:.*#面板密码:${PASSWORD_MASK}#g" ${LOG_FILE}
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl
 }
 
