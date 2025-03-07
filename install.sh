@@ -136,6 +136,11 @@ function create_daemon_json() {
 function configure_accelerator() {
     read -p "$TXT_ACCELERATION_CONFIG_ADD " configure_accelerator
     if [[ "$configure_accelerator" == "y" ]]; then
+        if ping -c 1 mirror.ccs.tencentyun.com &>/dev/null; then
+            ACCELERATOR_URL="https://mirror.ccs.tencentyun.com"
+            log "$TXT_USING_TENCENT_MIRROR"
+        fi
+
         if [ -f "$DAEMON_JSON" ]; then
             log "$TXT_ACCELERATION_CONFIG_EXISTS ${BACKUP_FILE}."
             cp "$DAEMON_JSON" "$BACKUP_FILE"
