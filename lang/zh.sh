@@ -61,6 +61,7 @@ TXT_SET_PANEL_PASSWORD="设置1Panel面板密码，设置后按回车键继续 (
 TXT_INPUT_PASSWORD_RULE="错误: 面板密码仅支持字母、数字、特殊字符(!@#$%*_,.?)，长度为8-30个字符"
 TXT_CONFIGURE_PANEL_SERVICE="正在配置1Panel服务"
 TXT_START_PANEL_SERVICE="正在启动1Panel服务"
+TXT_SERVICE_RETRY_MSG="服务启动失败，重试中..."
 TXT_PANEL_SERVICE_START_SUCCESS="1Panel服务已成功启动！"
 TXT_PANEL_SERVICE_START_ERROR="启动1Panel服务时出错！"
 TXT_THANK_YOU_WAITING="=================感谢您的耐心等待，安装已完成=================="
