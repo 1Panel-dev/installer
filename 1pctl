@@ -47,76 +47,118 @@ function usage() {
     echo "  restore             $TXT_PANEL_SERVICE_RESTORE"
 }
 
-function status() {
-    if ! service 1paneld status; then
-        systemctl status 1panel.service
-        if [[ $? -ne 0 ]]; then
-            echo "$TXT_PANEL_SERVICE_STATUS : $TXT_FAIELD_MESSAGE"
+_service_manager() {
+    local service_name="1panel"
+    if command -v systemctl &>/dev/null; then
+        service_manager="systemctl"
+        service_target="${service_name}.service"
+    elif command -v rc-service &>/dev/null; then
+        service_manager="openrc"
+        service_target="${service_name}d"
+    else
+        service_manager="sysvinit"
+        service_target="${service_name}d"
+    fi
+}
+
+_service_cmd() {
+    local cmd=$1 success_msg=$2 error_msg=$3
+    _service_manager
+    case $service_manager in
+    systemctl)
+        if ! systemctl "$cmd" "$service_target" 2>/dev/null; then
+            echo "$error_msg" >&2
             exit 1
         fi
+        ;;
+    openrc)
+        if ! rc-service "$service_target" "$cmd" 2>/dev/null; then
+           echo "$error_msg" >&2
+           exit 1
+        fi
+        ;;
+    *)
+        if ! service "$service_target" "$cmd" 2>/dev/null; then
+           echo "$error_msg" >&2
+           exit 1
+        fi
+        ;;
+    esac
+    [[ -n "$success_msg" ]] && echo "$success_msg"
+}
+_safe_remove() {
+    local path=$1
+    if [[ -e "$path" ]]; then
+        rm -rf -- "$path" || {
+            echo "Failed to remove: $path" >&2
+            exit 1
+        }
     fi
+}
+
+function status() {
+    _service_cmd "status" "" ""
 }
 
 function start() {
-    if ! service 1paneld start; then
-        systemctl start 1panel.service
-        if [[ $? -ne 0 ]]; then
-            echo "$TXT_PANEL_SERVICE_START_ERROR"
-            exit 1
-        fi
-    fi
-    echo "$TXT_PANEL_SERVICE_START_SUCCESS"
+    _service_cmd "start" "$TXT_PANEL_SERVICE_START_SUCCESS" "$TXT_PANEL_SERVICE_START_ERROR"
 }
 
 function stop() {
-    if ! service 1paneld stop; then
-        systemctl stop 1panel.service
-        if [[ $? -ne 0 ]]; then
-            echo "$TXT_PANEL_SERVICE_STOP $TXT_FAIELD_MESSAGE"
-            exit 1
-        fi
-    fi
-    echo "$TXT_PANEL_SERVICE_STOP $TXT_SUCCESS_MESSAGE"
+    _service_cmd "stop" "$TXT_PANEL_SERVICE_STOP $TXT_SUCCESS_MESSAGE" "$TXT_PANEL_SERVICE_STOP $TXT_FAILED_MESSAGE"
 }
 
 function restart() {
-    if ! service 1paneld restart; then
-        systemctl restart 1panel.service
-        if [[ $? -ne 0 ]]; then
-            echo "$TXT_PANEL_SERVICE_RESTART $$TXT_FAIELD_MESSAGE"
-            exit 1
-        fi
-    fi
-    echo "$TXT_PANEL_SERVICE_RESTART $TXT_SUCCESS_MESSAGE"
+    _service_cmd "restart" "$TXT_PANEL_SERVICE_RESTART $TXT_SUCCESS_MESSAGE" "$TXT_PANEL_SERVICE_RESTART $TXT_FAILED_MESSAGE"
 }
 
 function uninstall() {
     check_root
+    local yn
     read -p "$TXT_PANEL_SERVICE_UNINSTALL_NOTICE : " yn
-    if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
-        echo -e "$TXT_PANEL_SERVICE_UNINSTALL_START"
-        echo -e ""
-        echo -e "1) $TXT_PANEL_SERVICE_UNINSTALL_STOP"
-        if which opkg &>/dev/null;then
-            service 1paneld stop
+    case "${yn,,}" in  
+        y)
+            echo "$TXT_PANEL_SERVICE_UNINSTALL_START"
+            _service_manager          
+            echo -e "1) $TXT_PANEL_SERVICE_UNINSTALL_STOP"
+            case $service_manager in
+                systemctl)
+                    systemctl stop 1panel.service
+                    systemctl disable 1panel.service >/dev/null 2>&1
+                    ;;
+                openrc)
+                    rc-service 1paneld stop
+                    rc-update del 1paneld >/dev/null 2>&1
+                    ;;
+                *)
+                    service 1paneld stop
+                    ;;
+            esac
             echo -e "2) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
-            rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel,lang} 
+            _safe_remove "${BASE_DIR}/1panel"
+            _safe_remove "/usr/local/bin/1pctl" 
+            _safe_remove "/usr/local/bin/1panel"
+            _safe_remove "/usr/local/bin/lang"
             echo -e "3) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
-            /etc/init.d/1paneld disable 
-            rm -rf /etc/init.d/1paneld
-        else
-            systemctl stop 1panel.service
-            systemctl disable 1panel.service >/dev/null 2>&1
-            echo -e "2) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
-            rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel} /etc/systemd/system/1panel.service /usr/local/bin/lang
-            echo -e "3) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
-            systemctl daemon-reload
-            systemctl reset-failed
-        fi
-        echo -e "4) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_SUCCESS"
-    else
-        exit 0
-    fi
+            case $service_manager in
+                systemctl)
+                    _safe_remove "/etc/systemd/system/1panel.service"
+                    systemctl daemon-reload
+                    systemctl reset-failed
+                    ;;
+                openrc)
+                    _safe_remove "/etc/init.d/1paneld"
+                    ;;
+                *)
+                    _safe_remove "/etc/init.d/1paneld"
+                    ;;
+            esac
+            echo -e "4) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_SUCCESS"
+            ;;
+        *)
+            exit 0
+            ;;
+    esac
 }
 function user-info() {
     1panel -l $LANGUAGE user-info
@@ -249,3 +291,4 @@ function main() {
 }
 
 main
+
