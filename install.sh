@@ -136,6 +136,11 @@ function create_daemon_json() {
 function configure_accelerator() {
     read -p "$TXT_ACCELERATION_CONFIG_ADD " configure_accelerator
     if [[ "$configure_accelerator" == "y" ]]; then
+        if ping -c 1 mirror.ccs.tencentyun.com &>/dev/null; then
+            ACCELERATOR_URL="https://mirror.ccs.tencentyun.com"
+            log "$TXT_USING_TENCENT_MIRROR"
+        fi
+
         if [ -f "$DAEMON_JSON" ]; then
             log "$TXT_ACCELERATION_CONFIG_EXISTS ${BACKUP_FILE}."
             cp "$DAEMON_JSON" "$BACKUP_FILE"
@@ -158,7 +163,11 @@ function Install_Docker(){
         docker_version=$(docker --version | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
         major_version=${docker_version%%.*}
         minor_version=${docker_version##*.}
-        if [[ $(which opkg &>/dev/null && service dockerd start && service dockerd status 2>&1 || systemctl start docker && systemctl status docker 2>&1) == *running* ]]; then
+        local service_cmd="service dockerd start && service dockerd status"
+        if command -v systemctl &>/dev/null; then
+            service_cmd="systemctl start docker && systemctl status docker"
+        fi
+        if [[ $($service_cmd 2>&1)  == *running* ]]; then
             log "$TXT_DOCKER_RESTARTED"
 
         else
@@ -437,6 +446,7 @@ function Set_Username(){
 
 function passwd() {
     if which stty >/dev/null 2>&1; then
+        log "$TXT_SET_PANEL_PASSWORD $DEFAULT_PASSWORD): "
         charcount='0'
         reply=''
         while :; do
@@ -466,7 +476,6 @@ function passwd() {
                 ;;
             esac
         done
-        log "$TXT_SET_PANEL_PASSWORD $DEFAULT_PASSWORD): "
         printf '\n' >&2
     else
         read -s -p "$TXT_SET_PANEL_PASSWORD: $DEFAULT_PASSWORD):" reply
@@ -619,7 +628,7 @@ function Show_Result(){
     log "$TXT_REMEMBER_YOUR_PASSWORD"
     log ""
     log "================================================================"
-    sed -i -e "s#面板密码:.*#面板密码:${PASSWORD_MASK}#g" ${LOG_FILE}
+    sed -i -e "s/${TXT_PANEL_PASSWORD}.*/${TXT_PANEL_PASSWORD} ${PASSWORD_MASK}/g" "${LOG_FILE}"
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl
 }
 
