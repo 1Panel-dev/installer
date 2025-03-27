@@ -418,7 +418,7 @@ function Set_Entrance(){
             continue
     	fi
     
-        log "$TXT_SET_PANEL_ENTRANCE $PANEL_ENTRANCE"
+        log "$TXT_YOUR_PANEL_ENTRANCE $PANEL_ENTRANCE"
     	break
     done
 }
