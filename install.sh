@@ -150,8 +150,12 @@ function configure_accelerator() {
         fi
 
         log "$TXT_RESTARTING_DOCKER"
-        systemctl daemon-reload
-        systemctl restart docker
+        if command -v systemctl &>/dev/null; then
+            systemctl daemon-reload && systemctl restart docker
+        else
+            service dockerd restart
+	    sleep 1
+        fi
         log "$TXT_DOCKER_RESTARTED"
     else
         log "$TXT_ACCELERATION_CONFIG_NOT"
@@ -187,6 +191,9 @@ function Install_Docker(){
             opkg install luci-i18n-dockerman-zh-cn
             opkg install zoneinfo-asia
             service system restart
+	    if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
+                configure_accelerator
+            fi
         else
             if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
                 sources=(
