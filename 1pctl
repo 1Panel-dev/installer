@@ -139,6 +139,8 @@ function uninstall() {
             _safe_remove "/usr/local/bin/1pctl" 
             _safe_remove "/usr/local/bin/1panel"
             _safe_remove "/usr/local/bin/lang"
+            _safe_remove "/usr/bin/1panel"
+            _safe_remove "/usr/bin/1pctl"
             echo -e "3) $TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
             case $service_manager in
                 systemctl)
