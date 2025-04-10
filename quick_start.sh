@@ -11,6 +11,8 @@ elif [[ $osCheck =~ 'ppc64le' ]]; then
     architecture="ppc64le"
 elif [[ $osCheck =~ 's390x' ]]; then
     architecture="s390x"
+elif [[ $osCheck =~ 'riscv64' ]]; then
+    architecture="riscv64"
 else
     echo "The system architecture is not currently supported. Please refer to the official documentation to select a supported system."
     exit 1
