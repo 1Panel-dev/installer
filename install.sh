@@ -290,8 +290,12 @@ function Install_Docker(){
             sh get-docker.sh 2>&1 | tee -a ${LOG_FILE}
 
             log "$TXT_DOCKER_START_NOTICE"
+            if command -v systemctl &>/dev/null; then
             systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${LOG_FILE}
-
+            else
+                service dockerd start 2>&1 | tee -a ${LOG_FILE}
+                sleep 1
+                fi
                 docker_config_folder="/etc/docker"
                 if [[ ! -d "$docker_config_folder" ]];then
                     mkdir -p "$docker_config_folder"
@@ -313,7 +317,7 @@ function Install_Compose(){
     docker-compose version >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
         log "$TXT_DOCKER_COMPOSE_INSTALL_ONLINE"
-        if which opkg &>/dev/null;then
+        if command -v opkg &>/dev/null;then
             opkg update || log $TXT_DOCKER_COMPOSE_DOWNLOAD_FAIL
             opkg install docker-compose
         else
@@ -367,8 +371,8 @@ function Set_Port(){
             log "$TXT_INPUT_PORT_NUMBER"
             continue
         fi
-        if command -v lsof >/dev/null 2>&1; then 
-	        if lsof -i:$PANEL_PORT >/dev/null 2>&1; then
+        if command -v netstat >/dev/null 2>&1; then
+            if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
                 log "$TXT_PORT_OCCUPIED $PANEL_PORT"
                 continue
             fi
@@ -377,8 +381,8 @@ function Set_Port(){
                 log "$TXT_PORT_OCCUPIED $PANEL_PORT"
                 continue
             fi
-        elif command -v netstat >/dev/null 2>&1; then
-            if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
+        elif command -v lsof >/dev/null 2>&1; then 
+	        if lsof -i:$PANEL_PORT >/dev/null 2>&1; then
                 log "$TXT_PORT_OCCUPIED $PANEL_PORT"
                 continue
             fi
@@ -530,35 +534,30 @@ init_configure() {
     }
     
 install_and_configure() {
-    if which opkg &>/dev/null; then
-        mkdir -p /usr/local/bin
-	init_configure
-        echo "#!/bin/sh /etc/rc.common
-USE_PROCD=1
-
-START=95
-STOP=15
-NAME=1panel
-start_service() {
-    procd_open_instance
-    procd_set_param command 1panel
-    procd_set_param stdout 0 # 默认设置不输出系统日志，如为1，在系统日志可看到1panel前端响应信息
-    procd_set_param stderr 1
-    procd_close_instance
-    }
-" > /etc/init.d/1paneld
-
-        chmod +x /etc/init.d/1paneld
-        /etc/init.d/1paneld enable && /etc/init.d/1paneld reload 2>&1 | tee -a ${LOG_FILE}
-        /etc/init.d/1paneld start | tee -a ${LOG_FILE}
-    else
-    	init_configure
+    if command -v systemctl &>/dev/null; then
+        init_configure
         cp ./1panel.service /etc/systemd/system
         systemctl enable 1panel.service; systemctl daemon-reload 2>&1 | tee -a ${LOG_FILE}
-        systemctl start 1panel.service | tee -a ${LOG_FILE}
+        systemctl start 1panel.service | tee -a ${LOG_FILE} 
+    else
+     	mkdir -p /usr/local/bin
+	    init_configure
+        if [ -f /etc/rc.common ]; then
+            cp ./1paneld.procd /etc/init.d/1paneld
+            chmod +x /etc/init.d/1paneld
+            /etc/init.d/1paneld enable | tee -a ${LOG_FILE}
+        elif [ -f /sbin/openrc-run ]; then
+            cp ./1paneld.openrc /etc/init.d/1paneld
+            chmod +x /etc/init.d/1paneld
+            rc-update add 1paneld default 2>&1 | tee -a ${LOG_FILE}
+        else
+            cp ./1paneld.init /etc/init.d/1paneld
+            chmod +x /etc/init.d/1paneld
+            /etc/init.d/1paneld enable | tee -a ${LOG_FILE}
+        fi
+        /etc/init.d/1paneld start | tee -a ${LOG_FILE}
     fi
 }
-
 function Init_Panel(){
     log "$TXT_CONFIGURE_PANEL_SERVICE"
     MAX_ATTEMPTS=5
@@ -571,10 +570,13 @@ function Init_Panel(){
     install_and_configure
 
     for attempt in $(seq 1 $MAX_ATTEMPTS); do
-        if [[ $(command -v opkg) && $(/etc/init.d/1paneld status 2>&1) == *running* ]]; then
+        if [[ $(command -v systemctl) && $(systemctl status 1panel 2>&1) =~ Active.*running ]]; then
             log "$TXT_START_PANEL_SERVICE"
             break
-        elif [[ $(command -v systemctl) && $(systemctl status 1panel 2>&1) =~ Active.*running ]]; then
+        elif [[ $(command -v opkg) && $(/etc/init.d/1paneld status 2>&1) == *running* ]]; then
+            log "$TXT_START_PANEL_SERVICE"
+            break
+        elif [[ $(if service 1paneld status >/dev/null 2>&1; then echo 'active'; else echo 'inactive'; fi) == 'active' ]]; then
             log "$TXT_START_PANEL_SERVICE"
             break
         else
