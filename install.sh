@@ -395,7 +395,11 @@ function Set_Port(){
 
 function Set_Firewall(){
     if which firewall-cmd >/dev/null 2>&1; then
-        if systemctl status firewalld | grep -q "Active: active" >/dev/null 2>&1;then
+       if [[ $(if service firewalld status >/dev/null 2>&1; then echo 'active'; else echo 'inactive'; fi) == 'active' ]]; then
+            log "$TXT_FIREWALL_OPEN_PORT $PANEL_PORT"
+            firewall-cmd --zone=public --add-port="$PANEL_PORT"/tcp --permanent
+            firewall-cmd --reload
+        elif [[ $(if service firewalld start >/dev/null 2>&1; then echo 'Success'; else echo 'Faild'; fi) == 'Success' ]]; then
             log "$TXT_FIREWALL_OPEN_PORT $PANEL_PORT"
             firewall-cmd --zone=public --add-port="$PANEL_PORT"/tcp --permanent
             firewall-cmd --reload
@@ -405,7 +409,11 @@ function Set_Firewall(){
     fi
 
     if which ufw >/dev/null 2>&1; then
-        if systemctl status ufw | grep -q "Active: active" >/dev/null 2>&1;then
+        if [[ $(if service ufw status >/dev/null 2>&1; then echo 'active'; else echo 'inactive'; fi) == 'active' ]]; then
+            log "$TXT_FIREWALL_OPEN_PORT $PANEL_PORT"
+            ufw allow "$PANEL_PORT"/tcp
+            ufw reload
+        elif [[ $(if service ufw start >/dev/null 2>&1; then echo  'Success'; else echo 'Faild'; fi) == 'Success'  ]]; then
             log "$TXT_FIREWALL_OPEN_PORT $PANEL_PORT"
             ufw allow "$PANEL_PORT"/tcp
             ufw reload
@@ -536,22 +544,22 @@ init_configure() {
 install_and_configure() {
     if command -v systemctl &>/dev/null; then
         init_configure
-        cp ./1panel.service /etc/systemd/system
+        cp ./initscript/1panel.service /etc/systemd/system
         systemctl enable 1panel.service; systemctl daemon-reload 2>&1 | tee -a ${LOG_FILE}
         systemctl start 1panel.service | tee -a ${LOG_FILE} 
     else
      	mkdir -p /usr/local/bin
 	    init_configure
         if [ -f /etc/rc.common ]; then
-            cp ./1paneld.procd /etc/init.d/1paneld
+            cp ./initscript/1paneld.procd /etc/init.d/1paneld
             chmod +x /etc/init.d/1paneld
             /etc/init.d/1paneld enable | tee -a ${LOG_FILE}
         elif [ -f /sbin/openrc-run ]; then
-            cp ./1paneld.openrc /etc/init.d/1paneld
+            cp ./initscript/1paneld.openrc /etc/init.d/1paneld
             chmod +x /etc/init.d/1paneld
             rc-update add 1paneld default 2>&1 | tee -a ${LOG_FILE}
         else
-            cp ./1paneld.init /etc/init.d/1paneld
+            cp ./initscript/1paneld.init /etc/init.d/1paneld
             chmod +x /etc/init.d/1paneld
             /etc/init.d/1paneld enable | tee -a ${LOG_FILE}
         fi
@@ -589,6 +597,7 @@ function Init_Panel(){
             fi
         fi
     done
+    cp -rf ./initscript $RUN_BASE_DIR 
 }
 
 

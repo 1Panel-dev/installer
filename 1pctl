@@ -88,7 +88,7 @@ _service_cmd() {
 }
 _safe_remove() {
     local path=$1
-    if [[ -e "$path" ]]; then
+    if [[ -e "$path" || -L "$path" ]]; then 
         rm -rf -- "$path" || {
             echo "Failed to remove: $path" >&2
             exit 1
