@@ -88,7 +88,7 @@ _service_cmd() {
 }
 _safe_remove() {
     local path=$1
-    if [[ -e "$path" ]]; then
+    if [[ -e "$path" || -L "$path" ]]; then 
         rm -rf -- "$path" || {
             echo "Failed to remove: $path" >&2
             exit 1
@@ -187,8 +187,8 @@ function restore() {
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
         echo -e ""
         1panel -l $LANGUAGE restore
-        if ! service 1paneld reload; then
-        systemctl daemon-reload
+        if command -v systemctl &> /dev/null; then
+            systemctl daemon-reload
         fi
         restart
         1panel -l $LANGUAGE version
