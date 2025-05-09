@@ -282,52 +282,6 @@ function Install_Docker(){
     fi
 }
 
-function Install_Compose(){
-    docker-compose version >/dev/null 2>&1
-    if [[ $? -ne 0 ]]; then
-        log "$TXT_DOCKER_COMPOSE_INSTALL_ONLINE"
-        
-        arch=$(uname -m)
-		if [ "$arch" == 'armv7l' ]; then
-			arch='armv7'
-		fi
-
-        if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
-		    curl -L https://resource.fit2cloud.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-"$arch" -o /usr/local/bin/docker-compose 2>&1 | tee -a "${CURRENT_DIR}"/install.log
-        else
-            curl -L https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-$(uname -s | tr A-Z a-z)-"$arch" -o /usr/local/bin/docker-compose 2>&1 | tee -a "${CURRENT_DIR}"/install.log
-        fi
-
-        if [[ ! -f /usr/local/bin/docker-compose ]];then
-            log "$TXT_DOCKER_COMPOSE_DOWNLOAD_FAIL"
-            exit 1
-        fi
-        chmod +x /usr/local/bin/docker-compose
-        ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-
-        docker-compose version >/dev/null 2>&1
-        if [[ $? -ne 0 ]]; then
-            log "$TXT_DOCKER_COMPOSE_INSTALL_FAIL"
-            exit 1
-        else
-            log "$TXT_DOCKER_COMPOSE_INSTALL_SUCCESS"
-        fi
-    else
-        compose_v=$(docker-compose -v)
-        if [[ $compose_v =~ 'docker-compose' ]];then
-            read -p "$TXT_LOWER_VERSION_DETECTED " UPGRADE_DOCKER_COMPOSE
-            if [[ "$UPGRADE_DOCKER_COMPOSE" == "Y" ]] || [[ "$UPGRADE_DOCKER_COMPOSE" == "y" ]]; then
-                rm -rf /usr/local/bin/docker-compose /usr/bin/docker-compose
-                Install_Compose
-            else
-                log "$TXT_DOCKER_COMPOSE_VERSION $compose_v"
-            fi
-        else
-            log "$TXT_DOCKER_COMPOSE_INSTALLED_SKIP"
-        fi
-    fi
-}
-
 function Set_Port(){
     DEFAULT_PORT=$(expr $RANDOM % 55535 + 10000)
 
@@ -580,7 +534,6 @@ function main(){
     Prepare_System
     Set_Dir
     Install_Docker
-    Install_Compose
     Set_Port
     Set_Firewall
     Set_Entrance
