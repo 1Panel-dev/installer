@@ -26,39 +26,77 @@ function usage() {
     echo "  ./1pctl --help"
     echo
     echo "Commands: "
-    echo "  status              $TXT_PANEL_SERVICE_STATUS"
-    echo "  start               $TXT_PANEL_SERVICE_START"
-    echo "  stop                $TXT_PANEL_SERVICE_STOP"
-    echo "  restart             $TXT_PANEL_SERVICE_RESTART"
-    echo "  uninstall           $TXT_PANEL_SERVICE_UNINSTALL"
-    echo "  user-info           $TXT_PANEL_SERVICE_USER_INFO"
-    echo "  listen-ip           $TXT_PANEL_SERVICE_LISTEN_IP"
-    echo "  version             $TXT_PANEL_SERVICE_VERSION"
-    echo "  update              $TXT_PANEL_SERVICE_UPDATE"
-    echo "  reset               $TXT_PANEL_SERVICE_RESET"
-    echo "  restore             $TXT_PANEL_SERVICE_RESTORE"
+    echo "  status [core|agent]         $TXT_PANEL_SERVICE_STATUS"
+    echo "  start [core|agent|all]      $TXT_PANEL_SERVICE_START"
+    echo "  stop [core|agent|all]       $TXT_PANEL_SERVICE_STOP"
+    echo "  restart [core|agent|all]    $TXT_PANEL_SERVICE_RESTART"
+    echo "  uninstall                   $TXT_PANEL_SERVICE_UNINSTALL"
+    echo "  user-info                   $TXT_PANEL_SERVICE_USER_INFO"
+    echo "  listen-ip                   $TXT_PANEL_SERVICE_LISTEN_IP"
+    echo "  version                     $TXT_PANEL_SERVICE_VERSION"
+    echo "  update                      $TXT_PANEL_SERVICE_UPDATE"
+    echo "  reset                       $TXT_PANEL_SERVICE_RESET"
+    echo "  restore                     $TXT_PANEL_SERVICE_RESTORE"
+}
+
+function require_core_or_agent() {
+    echo -e "$TXT_PANEL_SERVICE_REQUIRE_CORE_OR_AGENT"
+    exit 1
+}
+
+function require_core_agent_or_all() {
+    echo -e "$TXT_PANEL_SERVICE_REQUIRE_CORE_AGENT_OR_ALL"
+    exit 1
 }
 
 function status() {
-    systemctl status 1panel-core.service
+    if [ -z "$target" ]; then
+        require_core_or_agent
+    fi
+    case "$target" in
+        core|agent)
+            systemctl status 1panel-$target.service
+            ;;
+        *)
+            require_core_or_agent
+            ;;
+    esac
 }
 
 function start() {
-    systemctl start 1panel-agent.service
-    systemctl start 1panel-core.service
-    status
+    if [ -z "$target" ]; then
+        require_core_agent_or_all
+    fi
+    if [ "$target" == "all" ]; then
+        systemctl start 1panel-core.service
+        systemctl start 1panel-agent.service
+    else
+        systemctl start 1panel-$target.service
+    fi
 }
 
 function stop() {
-    systemctl stop 1panel-agent.service
-    systemctl stop 1panel-core.service
-    status
+    if [ -z "$target" ]; then
+        require_core_agent_or_all
+    fi
+    if [ "$target" == "all" ]; then
+        systemctl stop 1panel-core.service
+        systemctl stop 1panel-agent.service
+    else
+        systemctl stop 1panel-$target.service
+    fi
 }
 
 function restart() {
-    systemctl restart 1panel-agent.service
-    systemctl restart 1panel-core.service
-    status
+    if [ -z "$target" ]; then
+        require_core_agent_or_all
+    fi
+    if [ "$target" == "all" ]; then
+        systemctl restart 1panel-agent.service
+        systemctl restart 1panel-core.service
+    else
+        systemctl restart 1panel-$target.service
+    fi
 }
 
 function uninstall() {
@@ -87,10 +125,12 @@ function listen-ip() {
     case "${target}" in
         ipv4)
             1panel -l $LANGUAGE listen-ip ipv4
+            target=all
             restart
             ;;
         ipv6)
             1panel -l $LANGUAGE listen-ip ipv6
+            target=all
             restart
             ;;
         *)
@@ -104,6 +144,7 @@ function restore() {
     if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
         1panel -l $LANGUAGE restore
         systemctl daemon-reload
+        target=all
         restart
         1panel -l $LANGUAGE version
     else
@@ -125,6 +166,7 @@ function reset() {
             ;;
         https)
             1panel -l $LANGUAGE reset https
+            target=all
             restart
             ;;
         ips)

@@ -95,3 +95,5 @@ TXT_LANG_CHOICE_MSG="Введите номер, соответствующий �
 TXT_LANG_SELECTED_CONFIRM_MSG="Вы выбрали: "
 TXT_LANG_INVALID_MSG="Неверный выбор. Используется английский язык (en) по умолчанию."
 TXT_LANG_NOT_FOUND_MSG="Языковой файл не найден:"
+TXT_PANEL_SERVICE_REQUIRE_CORE_OR_AGENT="Пожалуйста, укажите: core или agent"
+TXT_PANEL_SERVICE_REQUIRE_CORE_AGENT_OR_ALL="Пожалуйста, укажите: core, agent или all"
