@@ -471,17 +471,21 @@ function Init_Panel(){
 
     systemctl enable 1panel-agent.service; systemctl enable 1panel-core.service; systemctl daemon-reload 2>&1 | tee -a "${CURRENT_DIR}"/install.log
     log "$TXT_START_PANEL_SERVICE"
-    systemctl start 1panel-agent | tee -a "${CURRENT_DIR}"/install.log
     systemctl start 1panel-core | tee -a "${CURRENT_DIR}"/install.log
+    systemctl start 1panel-agent | tee -a "${CURRENT_DIR}"/install.log
 
-    for b in {1..30}
-    do
+    for i in {1..30}; do
         sleep 3
-        service_status=$(systemctl status 1panel-core 2>&1 | grep Active)
-        if [[ $service_status == *running* ]];then
+
+        core_status=$(systemctl status 1panel-core 2>&1 | grep Active)
+        agent_status=$(systemctl status 1panel-agent 2>&1 | grep Active)
+
+        if [[ "$core_status" == *running* && "$agent_status" == *running* ]]; then
             log "$TXT_PANEL_SERVICE_START_SUCCESS"
-            break;
-        else
+            break
+        fi
+
+        if [[ $i -eq 30 ]]; then
             log "$TXT_PANEL_SERVICE_START_ERROR"
             exit 1
         fi

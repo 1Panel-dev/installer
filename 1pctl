@@ -92,8 +92,8 @@ function restart() {
         require_core_agent_or_all
     fi
     if [ "$target" == "all" ]; then
-        systemctl restart 1panel-agent.service
         systemctl restart 1panel-core.service
+        systemctl restart 1panel-agent.service
     else
         systemctl restart 1panel-$target.service
     fi
