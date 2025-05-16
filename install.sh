@@ -439,12 +439,14 @@ function Init_Panel(){
     cd "${CURRENT_DIR}" || exit
 
     cp ./1panel-core /usr/local/bin && chmod +x /usr/local/bin/1panel-core
-    if [[ ! -f /usr/bin/1panel ]]; then
-        ln -s /usr/local/bin/1panel-core /usr/bin/1panel >/dev/null 2>&1
+    if [[ -e /usr/bin/1panel ]]; then
+        rm -f /usr/bin/1panel
     fi
+    ln -s /usr/local/bin/1panel-core /usr/bin/1panel >/dev/null 2>&1
     if [[ ! -f /usr/bin/1panel-core ]]; then
         ln -s /usr/local/bin/1panel-core /usr/bin/1panel-core >/dev/null 2>&1
     fi
+
     cp ./1panel-agent /usr/local/bin && chmod +x /usr/local/bin/1panel-agent
     if [[ ! -f /usr/bin/1panel-agent ]]; then
         ln -s /usr/local/bin/1panel-agent /usr/bin/1panel-agent >/dev/null 2>&1
@@ -490,7 +492,6 @@ function Init_Panel(){
             exit 1
         fi
     done
-    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=\*\*\*\*\*\*\*\*\*\*#g" /usr/local/bin/1pctl
 }
 
 function Get_Ip(){
@@ -531,6 +532,7 @@ function Show_Result(){
     log "$TXT_REMEMBER_YOUR_PASSWORD"
     log ""
     log "================================================================"
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=\*\*\*\*\*\*\*\*\*\*#g" /usr/local/bin/1pctl
 }
 
 function main(){
