@@ -512,6 +512,25 @@ function Get_Ip(){
     fi
 }
 
+function Check_Ready() {
+    i=0
+
+    while [ $i -lt 30 ]; do
+        if command -v ss >/dev/null 2>&1; then
+            ss -tlun | grep -q ":$PANEL_PORT " && break
+        elif command -v netstat >/dev/null 2>&1; then
+            netstat -tlun | grep -q ":$PANEL_PORT " && break
+        else
+            break
+        fi
+
+        sleep 2
+        i=$((i + 1))
+    done
+
+    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=\*\*\*\*\*\*\*\*\*\*#g" /usr/local/bin/1pctl
+}
+
 function Show_Result(){
     log ""
     log "$TXT_THANK_YOU_WAITING"
@@ -532,7 +551,6 @@ function Show_Result(){
     log "$TXT_REMEMBER_YOUR_PASSWORD"
     log ""
     log "================================================================"
-    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=\*\*\*\*\*\*\*\*\*\*#g" /usr/local/bin/1pctl
 }
 
 function main(){
@@ -547,6 +565,7 @@ function main(){
     Set_Password
     Init_Panel
     Get_Ip
+    Check_Ready
     Show_Result
 }
 main
