@@ -100,21 +100,59 @@ function restart() {
 }
 
 function uninstall() {
-    read -p "$TXT_PANEL_SERVICE_UNINSTALL_NOTICE : " yn
-    if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
-        echo -e "$TXT_PANEL_SERVICE_UNINSTALL_START"
-        systemctl stop 1panel-core.service
-        systemctl stop 1panel-agent.service
-        systemctl disable 1panel-core.service >/dev/null 2>&1
-        systemctl disable 1panel-agent.service >/dev/null 2>&1
-        echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
-        rm -rf $BASE_DIR/1panel /usr/local/bin/{1pctl,1panel-core,1panel-agent} /usr/bin/{1panel,1panel-core,1panel-agent} /etc/1panel /etc/systemd/system/{1panel-core.service,1panel-agent.service}
-        systemctl daemon-reload
-        systemctl reset-failed
-        echo -e "$TXT_PANEL_SERVICE_UNINSTALL_SUCCESS"
-    else
-        exit 0
-    fi
+    while true; do
+        read -p "$TXT_PANEL_SERVICE_UNINSTALL_NOTICE" yn
+        case $yn in
+            [Yy] )
+                echo -e "$TXT_PANEL_SERVICE_UNINSTALL_START"
+
+                systemctl stop 1panel-core.service
+                systemctl stop 1panel-agent.service
+                systemctl disable 1panel-core.service >/dev/null 2>&1
+                systemctl disable 1panel-agent.service >/dev/null 2>&1
+
+                while true; do
+                    read -p "$TXT_PANEL_DATA_KEEP_PROMPT" keep_data
+                    case $keep_data in
+                        [Yy] )
+                            echo "$TXT_PANEL_DATA_DELETE"
+                            echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
+                            rm -rf $BASE_DIR/1panel \
+                                   /usr/local/bin/{1pctl,1panel-core,1panel-agent,lang} \
+                                   /usr/bin/{1pctl,1panel,1panel-core,1panel-agent} \
+                                   /etc/1panel \
+                                   /etc/systemd/system/{1panel-core.service,1panel-agent.service}
+                            break
+                            ;;
+                        [Nn] )
+                            echo "$TXT_PANEL_DATA_KEEP"
+                            echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
+                            rm -rf /usr/local/bin/{1pctl,1panel-core,1panel-agent,lang} \
+                                   /usr/bin/{1pctl,1panel,1panel-core,1panel-agent} \
+                                   /etc/1panel \
+                                   /etc/systemd/system/{1panel-core.service,1panel-agent.service}
+                            break
+                            ;;
+                        * )
+                            echo "$TXT_INVALID_YN_INPUT"
+                            ;;
+                    esac
+                done
+
+                echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
+                systemctl daemon-reload
+                systemctl reset-failed
+                echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE_SUCCESS"
+                break
+                ;;
+            [Nn] )
+                exit 0
+                ;;
+            * )
+                echo "$TXT_INVALID_YN_INPUT"
+                ;;
+        esac
+    done
 }
 
 function user-info() {
@@ -140,16 +178,25 @@ function listen-ip() {
 }
 
 function restore() {
-    read -p "$TXT_PANEL_SERVICE_RESTORE_NOTICE : " yn
-    if [ "$yn" == "Y" ] || [ "$yn" == "y" ]; then
-        1panel -l $LANGUAGE restore
-        systemctl daemon-reload
-        target=all
-        restart
-        1panel -l $LANGUAGE version
-    else
-        exit 0
-    fi
+    while true; do
+        read -p "$TXT_PANEL_SERVICE_RESTORE_NOTICE" yn
+        case "$yn" in
+            [Yy])
+                1panel -l $LANGUAGE restore
+                systemctl daemon-reload
+                target=all
+                restart
+                1panel -l $LANGUAGE version
+                break
+                ;;
+            [Nn])
+                exit 0
+                ;;
+            *)
+                echo -e "$TXT_INVALID_YN_INPUT"
+                ;;
+        esac
+    done
 }
 
 function version() {

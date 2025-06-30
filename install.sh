@@ -130,28 +130,39 @@ function create_daemon_json() {
 }
 
 function configure_accelerator() {
-    read -p "$TXT_ACCELERATION_CONFIG_ADD " configure_accelerator
-    if [[ "$configure_accelerator" == "y" ]]; then
-        if ping -c 1 mirror.ccs.tencentyun.com &>/dev/null; then
-            ACCELERATOR_URL="https://mirror.ccs.tencentyun.com"
-            log "$TXT_USING_TENCENT_MIRROR"
-        fi
+    while true; do
+        read -p "$TXT_ACCELERATION_CONFIG_ADD" configure_accelerator
+        case "$configure_accelerator" in
+            [yY])
+                if ping -c 1 mirror.ccs.tencentyun.com &>/dev/null; then
+                    ACCELERATOR_URL="https://mirror.ccs.tencentyun.com"
+                    log "$TXT_USING_TENCENT_MIRROR"
+                fi
 
-        if [ -f "$DAEMON_JSON" ]; then
-            log "$TXT_ACCELERATION_CONFIG_EXISTS ${BACKUP_FILE}."
-            cp "$DAEMON_JSON" "$BACKUP_FILE"
-            create_daemon_json
-        else
-            create_daemon_json
-        fi
+                if [ -f "$DAEMON_JSON" ]; then
+                    log "$TXT_ACCELERATION_CONFIG_EXISTS ${BACKUP_FILE}."
+                    cp "$DAEMON_JSON" "$BACKUP_FILE"
+                    create_daemon_json
+                else
+                    create_daemon_json
+                fi
 
-        log "$TXT_RESTARTING_DOCKER"
-        systemctl daemon-reload
-        systemctl restart docker
-        log "$TXT_DOCKER_RESTARTED"
-    else
-        log "$TXT_ACCELERATION_CONFIG_NOT"
-    fi
+                log "$TXT_RESTARTING_DOCKER"
+                systemctl daemon-reload
+                systemctl restart docker
+
+                log "$TXT_DOCKER_RESTARTED"
+                break
+                ;;
+            [nN])
+                log "$TXT_ACCELERATION_CONFIG_NOT"
+                break
+                ;;
+            *)
+                log "$TXT_INVALID_YN_INPUT"
+                ;;
+        esac
+    done
 }
 
 function Install_Docker(){
@@ -167,118 +178,135 @@ function Install_Docker(){
             configure_accelerator
         fi
     else
-        log "$TXT_DOCKER_INSTALL_ONLINE"
+        while true; do
+        read -p "$TXT_INSTALL_DOCKER_CONFIRM" install_docker_choice
+            case "$install_docker_choice" in
+                [yY])
+                    log "$TXT_DOCKER_INSTALL_ONLINE"
 
-        if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
-            sources=(
-                "https://mirrors.aliyun.com/docker-ce"
-                "https://mirrors.tencent.com/docker-ce"
-                "https://mirrors.163.com/docker-ce"
-                "https://mirrors.cernet.edu.cn/docker-ce"
-            )
+                    if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
+                        sources=(
+                            "https://mirrors.aliyun.com/docker-ce"
+                            "https://mirrors.tencent.com/docker-ce"
+                            "https://mirrors.163.com/docker-ce"
+                            "https://mirrors.cernet.edu.cn/docker-ce"
+                        )
 
-            docker_install_scripts=(
-                "https://get.docker.com"
-                "https://testingcf.jsdelivr.net/gh/docker/docker-install@master/install.sh"
-                "https://cdn.jsdelivr.net/gh/docker/docker-install@master/install.sh"
-                "https://fastly.jsdelivr.net/gh/docker/docker-install@master/install.sh"
-                "https://gcore.jsdelivr.net/gh/docker/docker-install@master/install.sh"
-                "https://raw.githubusercontent.com/docker/docker-install/master/install.sh"
-            )
+                        docker_install_scripts=(
+                            "https://get.docker.com"
+                            "https://testingcf.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                            "https://cdn.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                            "https://fastly.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                            "https://gcore.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                            "https://raw.githubusercontent.com/docker/docker-install/master/install.sh"
+                        )
 
-            get_average_delay() {
-                local source=$1
-                local total_delay=0
-                local iterations=2
-                local timeout=2
-    
-                for ((i = 0; i < iterations; i++)); do
-                    delay=$(curl -o /dev/null -s -m $timeout -w "%{time_total}\n" "$source")
-                    if [ $? -ne 0 ]; then
-                        delay=$timeout
-                    fi
-                    total_delay=$(awk "BEGIN {print $total_delay + $delay}")
-                done
-    
-                average_delay=$(awk "BEGIN {print $total_delay / $iterations}")
-                echo "$average_delay"
-            }
-    
-            min_delay=99999999
-            selected_source=""
-    
-            for source in "${sources[@]}"; do
-                average_delay=$(get_average_delay "$source" &)
-    
-                if (( $(awk 'BEGIN { print '"$average_delay"' < '"$min_delay"' }') )); then
-                    min_delay=$average_delay
-                    selected_source=$source
-                fi
-            done
-            wait
-
-            if [ -n "$selected_source" ]; then
-                log "$TXT_CHOOSE_LOWEST_LATENCY_SOURCE $selected_source，$TXT_CHOOSE_LOWEST_LATENCY_DELAY $min_delay"
-                export DOWNLOAD_URL="$selected_source"
+                        get_average_delay() {
+                            local source=$1
+                            local total_delay=0
+                            local iterations=2
+                            local timeout=2
                 
-                for alt_source in "${docker_install_scripts[@]}"; do
-                    log "$TXT_TRY_NEXT_LINK $alt_source $TXT_DOWNLOAD_DOCKER_SCRIPT"
-                    if curl -fsSL --retry 2 --retry-delay 3 --connect-timeout 5 --max-time 10 "$alt_source" -o get-docker.sh; then
-                        log "$TXT_DOWNLOAD_DOCKER_SCRIPT_SUCCESS $alt_source $TXT_SUCCESSFULLY_MESSAGE"
-                        break
+                            for ((i = 0; i < iterations; i++)); do
+                                delay=$(curl -o /dev/null -s -m $timeout -w "%{time_total}\n" "$source")
+                                if [ $? -ne 0 ]; then
+                                    delay=$timeout
+                                fi
+                                total_delay=$(awk "BEGIN {print $total_delay + $delay}")
+                            done
+                
+                            average_delay=$(awk "BEGIN {print $total_delay / $iterations}")
+                            echo "$average_delay"
+                        }
+                
+                        min_delay=99999999
+                        selected_source=""
+                
+                        for source in "${sources[@]}"; do
+                            average_delay=$(get_average_delay "$source" &)
+                
+                            if (( $(awk 'BEGIN { print '"$average_delay"' < '"$min_delay"' }') )); then
+                                min_delay=$average_delay
+                                selected_source=$source
+                            fi
+                        done
+                        wait
+
+                        if [ -n "$selected_source" ]; then
+                            log "$TXT_CHOOSE_LOWEST_LATENCY_SOURCE $selected_source，$TXT_CHOOSE_LOWEST_LATENCY_DELAY $min_delay"
+                            export DOWNLOAD_URL="$selected_source"
+                            
+                            for alt_source in "${docker_install_scripts[@]}"; do
+                                log "$TXT_TRY_NEXT_LINK $alt_source $TXT_DOWNLOAD_DOCKER_SCRIPT"
+                                if curl -fsSL --retry 2 --retry-delay 3 --connect-timeout 5 --max-time 10 "$alt_source" -o get-docker.sh; then
+                                    log "$TXT_DOWNLOAD_DOCKER_SCRIPT_SUCCESS $alt_source $TXT_SUCCESSFULLY_MESSAGE"
+                                    break
+                                else
+                                    log "$TXT_DOWNLOAD_FAIELD $alt_source $TXT_TRY_NEXT_LINK"
+                                fi
+                            done
+                            
+                            if [ ! -f "get-docker.sh" ]; then
+                                log "$TXT_ALL_DOWNLOAD_ATTEMPTS_FAILED"
+                                log "bash <(curl -sSL https://linuxmirrors.cn/docker.sh)"
+                                exit 1
+                            fi
+
+                            sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+
+                            docker_config_folder="/etc/docker"
+                            if [[ ! -d "$docker_config_folder" ]];then
+                                mkdir -p "$docker_config_folder"
+                            fi
+                            
+                            docker version >/dev/null 2>&1
+                            if [[ $? -ne 0 ]]; then
+                                log "$TXT_DOCKER_INSTALL_FAIL"
+                                exit 1
+                            else
+                                log "$TXT_DOCKER_INSTALL_SUCCESS"
+                                systemctl enable docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+                                configure_accelerator
+                            fi
+                        else
+                            log "$TXT_CANNOT_SELECT_SOURCE"
+                            exit 1
+                        fi
                     else
-                        log "$TXT_DOWNLOAD_FAIELD $alt_source $TXT_TRY_NEXT_LINK"
+                        log "$TXT_REGIONS_OTHER_THAN_CHINA"
+                        export DOWNLOAD_URL="https://download.docker.com"
+                        curl -fsSL "https://get.docker.com" -o get-docker.sh
+                        sh get-docker.sh 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+
+                        log "$TXT_DOCKER_START_NOTICE"
+                        systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+
+                        docker_config_folder="/etc/docker"
+                        if [[ ! -d "$docker_config_folder" ]];then
+                            mkdir -p "$docker_config_folder"
+                        fi
+
+                        docker version >/dev/null 2>&1
+                        if [[ $? -ne 0 ]]; then
+                            log "$TXT_DOCKER_INSTALL_FAIL"
+                            exit 1
+                        else
+                            log "$TXT_DOCKER_INSTALL_SUCCESS"
+                        fi
                     fi
-                done
-                
-                if [ ! -f "get-docker.sh" ]; then
-                    log "$TXT_ALL_DOWNLOAD_ATTEMPTS_FAILED"
-                    log "bash <(curl -sSL https://linuxmirrors.cn/docker.sh)"
-                    exit 1
-                fi
 
-                sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
-
-                docker_config_folder="/etc/docker"
-                if [[ ! -d "$docker_config_folder" ]];then
-                    mkdir -p "$docker_config_folder"
-                fi
-                
-                docker version >/dev/null 2>&1
-                if [[ $? -ne 0 ]]; then
-                    log "$TXT_DOCKER_INSTALL_FAIL"
-                    exit 1
-                else
-                    log "$TXT_DOCKER_INSTALL_SUCCESS"
-                    systemctl enable docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
-                    configure_accelerator
-                fi
-            else
-                log "$TXT_CANNOT_SELECT_SOURCE"
-                exit 1
-            fi
-        else
-            log "$TXT_REGIONS_OTHER_THAN_CHINA"
-            export DOWNLOAD_URL="https://download.docker.com"
-            curl -fsSL "https://get.docker.com" -o get-docker.sh
-            sh get-docker.sh 2>&1 | tee -a "${CURRENT_DIR}"/install.log
-
-            log "$TXT_DOCKER_START_NOTICE"
-            systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
-
-            docker_config_folder="/etc/docker"
-            if [[ ! -d "$docker_config_folder" ]];then
-                mkdir -p "$docker_config_folder"
-            fi
-
-            docker version >/dev/null 2>&1
-            if [[ $? -ne 0 ]]; then
-                log "$TXT_DOCKER_INSTALL_FAIL"
-                exit 1
-            else
-                log "$TXT_DOCKER_INSTALL_SUCCESS"
-            fi
-        fi
+                    break
+                    ;;
+                [nN])
+                    echo "$TXT_CANCEL_INSTALL_DOCKER"
+                    break
+                    ;;
+                *)
+                    log "$TXT_INVALID_YN_INPUT"
+                    continue
+                    ;;
+            esac
+        done
     fi
 }
 
@@ -464,7 +492,10 @@ function Init_Panel(){
         ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
     fi
 
-    mkdir $RUN_BASE_DIR/geo/
+    if [ -d "$RUN_BASE_DIR/geo" ]; then
+        rm -rf "$RUN_BASE_DIR/geo"
+    fi
+    mkdir $RUN_BASE_DIR/geo
     cp -r ./GeoIP.mmdb $RUN_BASE_DIR/geo/
 
     cp -r ./lang /usr/local/bin
