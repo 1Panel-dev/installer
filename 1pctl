@@ -183,10 +183,6 @@ function restore() {
         case "$yn" in
             [Yy])
                 1panel -l $LANGUAGE restore
-                systemctl daemon-reload
-                target=all
-                restart
-                1panel -l $LANGUAGE version
                 break
                 ;;
             [Nn])
