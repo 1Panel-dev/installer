@@ -58,7 +58,7 @@ TXT_SET_PANEL_PASSWORD="ramz oboor panel 1Panel ra tanzim konid, pas az tanzim b
 TXT_INPUT_PASSWORD_RULE="khata: ramz oboor panel faghat horof, adad, karakterhaye khas (!@#$%*_,.?) va tool 8-30 karakter ra poshtibani mikonad"
 TXT_CONFIGURE_PANEL_SERVICE="pikerbandiye service 1Panel"
 TXT_START_PANEL_SERVICE="shorooe service 1Panel"
-TXT_PANEL_SERVICE_START_SUCCESS="service 1Panel ba movafaghiat shoroo shod!"
+TXT_PANEL_SERVICE_START_SUCCESS="service 1Panel ba movafaghiat shoroo shod! dar hale anjam pیکربندی haye ba’di hastim, lotfan sabr konid…"
 TXT_PANEL_SERVICE_START_ERROR="khata dar shorooe service 1Panel!"
 TXT_THANK_YOU_WAITING="=================ba tashakor az sabre shoma, nasb be payan resid=================="
 TXT_BROWSER_ACCESS_PANEL="lotfan ba mororgar khod be panel dastresi peyda konid:"

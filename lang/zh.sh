@@ -58,7 +58,7 @@ TXT_SET_PANEL_PASSWORD="设置 1Panel 面板密码，设置后按回车键继续
 TXT_INPUT_PASSWORD_RULE="错误: 面板密码仅支持字母、数字、特殊字符(!@#$%*_,.?)，长度为 8-30 个字符"
 TXT_CONFIGURE_PANEL_SERVICE="正在配置 1Panel 服务"
 TXT_START_PANEL_SERVICE="正在启动 1Panel 服务"
-TXT_PANEL_SERVICE_START_SUCCESS="1Panel 服务已成功启动！"
+TXT_PANEL_SERVICE_START_SUCCESS="1Panel 服务已成功启动，正在继续执行后续配置，请稍候..."
 TXT_PANEL_SERVICE_START_ERROR="启动 1Panel 服务时出错！"
 TXT_THANK_YOU_WAITING="=================感谢您的耐心等待，安装已完成=================="
 TXT_BROWSER_ACCESS_PANEL="请使用您的浏览器访问面板: "

@@ -58,7 +58,7 @@ TXT_SET_PANEL_PASSWORD="Set 1Panel panel password, press Enter to continue after
 TXT_INPUT_PASSWORD_RULE="Error: Panel password only supports letters, numbers, special characters (!@#$%*_,.?), length 8-30 characters"
 TXT_CONFIGURE_PANEL_SERVICE="Configuring 1Panel Service"
 TXT_START_PANEL_SERVICE="Starting 1Panel service"
-TXT_PANEL_SERVICE_START_SUCCESS="1Panel service started successfully!"
+TXT_PANEL_SERVICE_START_SUCCESS="1Panel service has started successfully. Continuing with post-setup tasks, please wait..."
 TXT_PANEL_SERVICE_START_ERROR="Error starting 1Panel service!"
 TXT_THANK_YOU_WAITING="=================Thank you for your patience, installation is complete=================="
 TXT_BROWSER_ACCESS_PANEL="Please access the panel using your browser:"

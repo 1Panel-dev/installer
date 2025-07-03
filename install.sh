@@ -119,13 +119,6 @@ function Set_Dir(){
 
     if [[ -f "$PANEL_BASE_DIR/1panel/db/core.db" ]]; then
         USE_EXISTING=true
-        if [[ -f "$PANEL_BASE_DIR/1pctl" ]]; then
-            if grep -q "^CHANGE_USER_INFO=" "$PANEL_BASE_DIR/1pctl"; then
-                sed -i 's/^CHANGE_USER_INFO=.*/CHANGE_USER_INFO=use_existing/' "$PANEL_BASE_DIR/1pctl"
-            else
-                sed -i '/^LANGUAGE=.*/a CHANGE_USER_INFO=use_existing' "$PANEL_BASE_DIR/1pctl"
-            fi
-        fi
     fi
 }
 
@@ -501,6 +494,13 @@ function Init_Panel(){
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
     sed -i -e "s#LANGUAGE=.*#LANGUAGE=${selected_lang}#g" /usr/local/bin/1pctl
+    if [[ "$USE_EXISTING" == true ]]; then
+        if grep -q "^CHANGE_USER_INFO=" "/usr/local/bin/1pctl"; then
+            sed -i 's/^CHANGE_USER_INFO=.*/CHANGE_USER_INFO=use_existing/' "/usr/local/bin/1pctl"
+        else
+            sed -i '/^LANGUAGE=.*/a CHANGE_USER_INFO=use_existing' "/usr/local/bin/1pctl"
+        fi
+    fi
     if [[ ! -f /usr/bin/1pctl ]]; then
         ln -s /usr/local/bin/1pctl /usr/bin/1pctl >/dev/null 2>&1
     fi
