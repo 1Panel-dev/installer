@@ -95,14 +95,15 @@ function Prepare_System(){
 }
 
 function Set_Dir(){
-    if read -t 120 -p "$TXT_SET_INSTALL_DIR" PANEL_BASE_DIR;then
-        if [[ "$PANEL_BASE_DIR" != "" ]];then
-            if [[ "$PANEL_BASE_DIR" != /* ]];then
+    if read -t 120 -p "$TXT_SET_INSTALL_DIR" PANEL_BASE_DIR; then
+        if [[ "$PANEL_BASE_DIR" != "" ]]; then
+            if [[ "$PANEL_BASE_DIR" != /* ]]; then
                 log "$TXT_PROVIDE_FULL_PATH"
                 Set_Dir
+                return
             fi
 
-            if [[ ! -d $PANEL_BASE_DIR ]];then
+            if [[ ! -d $PANEL_BASE_DIR ]]; then
                 mkdir -p "$PANEL_BASE_DIR"
                 log "$TXT_SELECTED_INSTALL_PATH $PANEL_BASE_DIR"
             fi
@@ -114,7 +115,18 @@ function Set_Dir(){
         PANEL_BASE_DIR=/opt
         log "$TXT_TIMEOUT_USE_DEFAULT_PATH"
     fi
+
+    if [[ -f "$PANEL_BASE_DIR/1panel/db/core.db" ]]; then
+        if [[ -f "$PANEL_BASE_DIR/1pctl" ]]; then
+            if grep -q "^CHANGE_USER_INFO=" "$PANEL_BASE_DIR/1pctl"; then
+                sed -i 's/^CHANGE_USER_INFO=.*/CHANGE_USER_INFO=all,use_existing/' "$PANEL_BASE_DIR/1pctl"
+            else
+                sed -i '/^LANGUAGE=.*/a CHANGE_USER_INFO=all,use_existing' "$PANEL_BASE_DIR/1pctl"
+            fi
+        fi
+    fi
 }
+
 
 ACCELERATOR_URL="https://docker.1panel.live"
 DAEMON_JSON="/etc/docker/daemon.json"
@@ -558,8 +570,6 @@ function Check_Ready() {
         sleep 2
         i=$((i + 1))
     done
-
-    sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=\*\*\*\*\*\*\*\*\*\*#g" /usr/local/bin/1pctl
 }
 
 function Show_Result(){
