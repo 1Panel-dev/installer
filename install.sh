@@ -94,6 +94,7 @@ function Prepare_System(){
     fi
 }
 
+USE_EXISTING=false
 function Set_Dir(){
     if read -t 120 -p "$TXT_SET_INSTALL_DIR" PANEL_BASE_DIR; then
         if [[ "$PANEL_BASE_DIR" != "" ]]; then
@@ -117,16 +118,16 @@ function Set_Dir(){
     fi
 
     if [[ -f "$PANEL_BASE_DIR/1panel/db/core.db" ]]; then
+        USE_EXISTING=true
         if [[ -f "$PANEL_BASE_DIR/1pctl" ]]; then
             if grep -q "^CHANGE_USER_INFO=" "$PANEL_BASE_DIR/1pctl"; then
-                sed -i 's/^CHANGE_USER_INFO=.*/CHANGE_USER_INFO=all,use_existing/' "$PANEL_BASE_DIR/1pctl"
+                sed -i 's/^CHANGE_USER_INFO=.*/CHANGE_USER_INFO=use_existing/' "$PANEL_BASE_DIR/1pctl"
             else
-                sed -i '/^LANGUAGE=.*/a CHANGE_USER_INFO=all,use_existing' "$PANEL_BASE_DIR/1pctl"
+                sed -i '/^LANGUAGE=.*/a CHANGE_USER_INFO=use_existing' "$PANEL_BASE_DIR/1pctl"
             fi
         fi
     fi
 }
-
 
 ACCELERATOR_URL="https://docker.1panel.live"
 DAEMON_JSON="/etc/docker/daemon.json"
@@ -570,6 +571,10 @@ function Check_Ready() {
         sleep 2
         i=$((i + 1))
     done
+
+    if [[ "$USE_EXISTING" == false ]]; then
+        sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=\*\*\*\*\*\*\*\*\*\*#g" /usr/local/bin/1pctl
+    fi
 }
 
 function Show_Result(){
