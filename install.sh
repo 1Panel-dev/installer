@@ -52,20 +52,24 @@ else
 fi
 clear
 
+LOG_FILE=${CURRENT_DIR}/install.log
+PASSWORD_MASK="**********"
+
 function log() {
-    message="[1Panel Log]: $1 "
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    message="[1Panel ${timestamp} install Log]: $1 "
     case "$1" in
         *"$TXT_RUN_AS_ROOT"*)
-            echo -e "${RED}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${RED}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
         *"$TXT_SUCCESS_MESSAGE"* )
-            echo -e "${GREEN}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${GREEN}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
         *"$TXT_IGNORE_MESSAGE"*|*"$TXT_SKIP_MESSAGE"* )
-            echo -e "${YELLOW}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${YELLOW}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
         * )
-            echo -e "${BLUE}${message}${NC}" 2>&1 | tee -a "${CURRENT_DIR}"/install.log
+            echo -e "${BLUE}${message}${NC}" 2>&1 | tee -a ${LOG_FILE}
             ;;
     esac
 }
@@ -154,9 +158,12 @@ function configure_accelerator() {
                 fi
 
                 log "$TXT_RESTARTING_DOCKER"
-                systemctl daemon-reload
-                systemctl restart docker
-
+                if command -v systemctl &>/dev/null; then
+                    systemctl daemon-reload && systemctl restart docker
+                else
+                    service dockerd restart
+                    sleep 1
+                fi
                 log "$TXT_DOCKER_RESTARTED"
                 break
                 ;;
@@ -176,12 +183,20 @@ function Install_Docker(){
         docker_version=$(docker --version | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
         major_version=${docker_version%%.*}
         minor_version=${docker_version##*.}
-        if [[ $major_version -lt 20 ]]; then
-            log "$TXT_LOW_DOCKER_VERSION"
+        local service_cmd="service dockerd start && service dockerd status"
+        if command -v systemctl &>/dev/null; then
+            service_cmd="systemctl start docker && systemctl status docker"
         fi
+        if [[ $($service_cmd 2>&1)  == *running* ]]; then
+            log "$TXT_DOCKER_RESTARTED"
+        else
+            if [[ $major_version -lt 20 ]]; then
+                log "$TXT_LOW_DOCKER_VERSION"
+            fi
 
-        if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
-            configure_accelerator
+            if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
+                configure_accelerator
+            fi
         fi
     else
         while true; do
@@ -190,114 +205,130 @@ function Install_Docker(){
                 [yY])
                     log "$TXT_DOCKER_INSTALL_ONLINE"
 
-                    if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
-                        sources=(
-                            "https://mirrors.aliyun.com/docker-ce"
-                            "https://mirrors.tencent.com/docker-ce"
-                            "https://mirrors.163.com/docker-ce"
-                            "https://mirrors.cernet.edu.cn/docker-ce"
-                        )
+                    if  command -v opkg &>/dev/null;then
+                        log $TXT_INSTALL_DOCKER_ONLINE
+                        opkg update
+                        opkg install luci-i18n-dockerman-zh-cn
+                        opkg install zoneinfo-asia
+                        service system restart
+                        if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
+                            configure_accelerator
+                        fi
+                    else
+                        if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
+                            sources=(
+                                "https://mirrors.aliyun.com/docker-ce"
+                                "https://mirrors.tencent.com/docker-ce"
+                                "https://mirrors.163.com/docker-ce"
+                                "https://mirrors.cernet.edu.cn/docker-ce"
+                            )
 
-                        docker_install_scripts=(
-                            "https://get.docker.com"
-                            "https://testingcf.jsdelivr.net/gh/docker/docker-install@master/install.sh"
-                            "https://cdn.jsdelivr.net/gh/docker/docker-install@master/install.sh"
-                            "https://fastly.jsdelivr.net/gh/docker/docker-install@master/install.sh"
-                            "https://gcore.jsdelivr.net/gh/docker/docker-install@master/install.sh"
-                            "https://raw.githubusercontent.com/docker/docker-install/master/install.sh"
-                        )
+                            docker_install_scripts=(
+                                "https://get.docker.com"
+                                "https://testingcf.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                                "https://cdn.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                                "https://fastly.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                                "https://gcore.jsdelivr.net/gh/docker/docker-install@master/install.sh"
+                                "https://raw.githubusercontent.com/docker/docker-install/master/install.sh"
+                            )
 
-                        get_average_delay() {
-                            local source=$1
-                            local total_delay=0
-                            local iterations=2
-                            local timeout=2
-                
-                            for ((i = 0; i < iterations; i++)); do
-                                delay=$(curl -o /dev/null -s -m $timeout -w "%{time_total}\n" "$source")
-                                if [ $? -ne 0 ]; then
-                                    delay=$timeout
+                            get_average_delay() {
+                                local source=$1
+                                local total_delay=0
+                                local iterations=2
+                                local timeout=2
+                    
+                                for ((i = 0; i < iterations; i++)); do
+                                    delay=$(curl -o /dev/null -s -m $timeout -w "%{time_total}\n" "$source")
+                                    if [ $? -ne 0 ]; then
+                                        delay=$timeout
+                                    fi
+                                    total_delay=$(awk "BEGIN {print $total_delay + $delay}")
+                                done
+                    
+                                average_delay=$(awk "BEGIN {print $total_delay / $iterations}")
+                                echo "$average_delay"
+                            }
+                    
+                            min_delay=99999999
+                            selected_source=""
+                    
+                            for source in "${sources[@]}"; do
+                                average_delay=$(get_average_delay "$source" &)
+                    
+                                if (( $(awk 'BEGIN { print '"$average_delay"' < '"$min_delay"' }') )); then
+                                    min_delay=$average_delay
+                                    selected_source=$source
                                 fi
-                                total_delay=$(awk "BEGIN {print $total_delay + $delay}")
                             done
-                
-                            average_delay=$(awk "BEGIN {print $total_delay / $iterations}")
-                            echo "$average_delay"
-                        }
-                
-                        min_delay=99999999
-                        selected_source=""
-                
-                        for source in "${sources[@]}"; do
-                            average_delay=$(get_average_delay "$source" &)
-                
-                            if (( $(awk 'BEGIN { print '"$average_delay"' < '"$min_delay"' }') )); then
-                                min_delay=$average_delay
-                                selected_source=$source
-                            fi
-                        done
-                        wait
+                            wait
 
-                        if [ -n "$selected_source" ]; then
-                            log "$TXT_CHOOSE_LOWEST_LATENCY_SOURCE $selected_source，$TXT_CHOOSE_LOWEST_LATENCY_DELAY $min_delay"
-                            export DOWNLOAD_URL="$selected_source"
-                            
-                            for alt_source in "${docker_install_scripts[@]}"; do
-                                log "$TXT_TRY_NEXT_LINK $alt_source $TXT_DOWNLOAD_DOCKER_SCRIPT"
-                                if curl -fsSL --retry 2 --retry-delay 3 --connect-timeout 5 --max-time 10 "$alt_source" -o get-docker.sh; then
-                                    log "$TXT_DOWNLOAD_DOCKER_SCRIPT_SUCCESS $alt_source $TXT_SUCCESSFULLY_MESSAGE"
-                                    break
+                            if [ -n "$selected_source" ]; then
+                                log "$TXT_CHOOSE_LOWEST_LATENCY_SOURCE $selected_source，$TXT_CHOOSE_LOWEST_LATENCY_DELAY $min_delay"
+                                export DOWNLOAD_URL="$selected_source"
+                                
+                                for alt_source in "${docker_install_scripts[@]}"; do
+                                    log "$TXT_TRY_NEXT_LINK $alt_source $TXT_DOWNLOAD_DOCKER_SCRIPT"
+                                    if curl -fsSL --retry 2 --retry-delay 3 --connect-timeout 5 --max-time 10 "$alt_source" -o get-docker.sh; then
+                                        log "$TXT_DOWNLOAD_DOCKER_SCRIPT_SUCCESS $alt_source $TXT_SUCCESSFULLY_MESSAGE"
+                                        break
+                                    else
+                                        log "$TXT_DOWNLOAD_FAIELD $alt_source $TXT_TRY_NEXT_LINK"
+                                    fi
+                                done
+                                
+                                if [ ! -f "get-docker.sh" ]; then
+                                    log "$TXT_ALL_DOWNLOAD_ATTEMPTS_FAILED"
+                                    log "bash <(curl -sSL https://linuxmirrors.cn/docker.sh)"
+                                    exit 1
+                                fi
+
+                                sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+
+                                docker_config_folder="/etc/docker"
+                                if [[ ! -d "$docker_config_folder" ]];then
+                                    mkdir -p "$docker_config_folder"
+                                fi
+                                
+                                docker version >/dev/null 2>&1
+                                if [[ $? -ne 0 ]]; then
+                                    log "$TXT_DOCKER_INSTALL_FAIL"
+                                    exit 1
                                 else
-                                    log "$TXT_DOWNLOAD_FAIELD $alt_source $TXT_TRY_NEXT_LINK"
+                                    log "$TXT_DOCKER_INSTALL_SUCCESS"
+                                    systemctl enable docker 2>&1 | tee -a ${LOG_FILE}
+                                    configure_accelerator
                                 fi
-                            done
-                            
-                            if [ ! -f "get-docker.sh" ]; then
-                                log "$TXT_ALL_DOWNLOAD_ATTEMPTS_FAILED"
-                                log "bash <(curl -sSL https://linuxmirrors.cn/docker.sh)"
+                            else
+                                log "$TXT_CANNOT_SELECT_SOURCE"
                                 exit 1
                             fi
+                        else
+                            log "$TXT_REGIONS_OTHER_THAN_CHINA"
+                            export DOWNLOAD_URL="https://download.docker.com"
+                            curl -fsSL "https://get.docker.com" -o get-docker.sh
+                            sh get-docker.sh 2>&1 | tee -a ${LOG_FILE}
 
-                            sh get-docker.sh 2>&1 | tee -a ${CURRENT_DIR}/install.log
+                            log "$TXT_DOCKER_START_NOTICE"
+                            if command -v systemctl &>/dev/null; then
+                                systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a ${LOG_FILE}
+                            else
+                                service dockerd start 2>&1 | tee -a ${LOG_FILE}
+                                sleep 1
+                            fi
 
                             docker_config_folder="/etc/docker"
                             if [[ ! -d "$docker_config_folder" ]];then
                                 mkdir -p "$docker_config_folder"
                             fi
-                            
+
                             docker version >/dev/null 2>&1
                             if [[ $? -ne 0 ]]; then
                                 log "$TXT_DOCKER_INSTALL_FAIL"
                                 exit 1
                             else
                                 log "$TXT_DOCKER_INSTALL_SUCCESS"
-                                systemctl enable docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
-                                configure_accelerator
                             fi
-                        else
-                            log "$TXT_CANNOT_SELECT_SOURCE"
-                            exit 1
-                        fi
-                    else
-                        log "$TXT_REGIONS_OTHER_THAN_CHINA"
-                        export DOWNLOAD_URL="https://download.docker.com"
-                        curl -fsSL "https://get.docker.com" -o get-docker.sh
-                        sh get-docker.sh 2>&1 | tee -a "${CURRENT_DIR}"/install.log
-
-                        log "$TXT_DOCKER_START_NOTICE"
-                        systemctl enable docker; systemctl daemon-reload; systemctl start docker 2>&1 | tee -a "${CURRENT_DIR}"/install.log
-
-                        docker_config_folder="/etc/docker"
-                        if [[ ! -d "$docker_config_folder" ]];then
-                            mkdir -p "$docker_config_folder"
-                        fi
-
-                        docker version >/dev/null 2>&1
-                        if [[ $? -ne 0 ]]; then
-                            log "$TXT_DOCKER_INSTALL_FAIL"
-                            exit 1
-                        else
-                            log "$TXT_DOCKER_INSTALL_SUCCESS"
                         fi
                     fi
 
@@ -331,26 +362,35 @@ function Set_Port(){
             continue
         fi
 
-        if command -v ss >/dev/null 2>&1; then
+        if command -v netstat >/dev/null 2>&1; then
+            if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
+                log "$TXT_PORT_OCCUPIED $PANEL_PORT"
+                continue
+            fi
+        elif command -v ss >/dev/null 2>&1; then
             if ss -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
                 log "$TXT_PORT_OCCUPIED $PANEL_PORT"
                 continue
             fi
-        elif command -v netstat >/dev/null 2>&1; then
-            if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
+        elif command -v lsof >/dev/null 2>&1; then 
+	        if lsof -i:$PANEL_PORT >/dev/null 2>&1; then
                 log "$TXT_PORT_OCCUPIED $PANEL_PORT"
                 continue
             fi
         fi
 
-         log "$TXT_THE_PORT_U_SET $PANEL_PORT"
+        log "$TXT_THE_PORT_U_SET $PANEL_PORT"
         break
     done
 }
 
 function Set_Firewall(){
     if which firewall-cmd >/dev/null 2>&1; then
-        if systemctl status firewalld | grep -q "Active: active" >/dev/null 2>&1;then
+       if [[ $(if service firewalld status >/dev/null 2>&1; then echo 'active'; else echo 'inactive'; fi) == 'active' ]]; then
+            log "$TXT_FIREWALL_OPEN_PORT $PANEL_PORT"
+            firewall-cmd --zone=public --add-port="$PANEL_PORT"/tcp --permanent
+            firewall-cmd --reload
+        elif [[ $(if service firewalld start >/dev/null 2>&1; then echo 'Success'; else echo 'Faild'; fi) == 'Success' ]]; then
             log "$TXT_FIREWALL_OPEN_PORT $PANEL_PORT"
             firewall-cmd --zone=public --add-port="$PANEL_PORT"/tcp --permanent
             firewall-cmd --reload
@@ -360,7 +400,11 @@ function Set_Firewall(){
     fi
 
     if which ufw >/dev/null 2>&1; then
-        if systemctl status ufw | grep -q "Active: active" >/dev/null 2>&1;then
+        if [[ $(if service ufw status >/dev/null 2>&1; then echo 'active'; else echo 'inactive'; fi) == 'active' ]]; then
+            log "$TXT_FIREWALL_OPEN_PORT $PANEL_PORT"
+            ufw allow "$PANEL_PORT"/tcp
+            ufw reload
+        elif [[ $(if service ufw start >/dev/null 2>&1; then echo  'Success'; else echo 'Faild'; fi) == 'Success'  ]]; then
             log "$TXT_FIREWALL_OPEN_PORT $PANEL_PORT"
             ufw allow "$PANEL_PORT"/tcp
             ufw reload
@@ -409,45 +453,49 @@ function Set_Username(){
     done
 }
 
-
 function passwd() {
-    charcount='0'
-    reply=''
-    while :; do
-        char=$(
-            stty cbreak -echo
-            dd if=/dev/tty bs=1 count=1 2>/dev/null
-            stty -cbreak echo
-        )
-        case $char in
-        "$(printenv '\000')")
-            break
-            ;;
-        "$(printf '\177')" | "$(printf '\b')")
-            if [ $charcount -gt 0 ]; then
-                printf '\b \b'
-                reply="${reply%?}"
-                charcount=$((charcount - 1))
-            else
-                printf ''
-            fi
-            ;;
-        "$(printf '\033')") ;;
-        *)
-            printf '*'
-            reply="${reply}${char}"
-            charcount=$((charcount + 1))
-            ;;
-        esac
-    done
-    printf '\n' >&2
+    if which stty >/dev/null 2>&1; then
+        log "$TXT_SET_PANEL_PASSWORD $DEFAULT_PASSWORD): "
+        charcount='0'
+        reply=''
+        while :; do
+            char=$(
+                stty cbreak -echo
+                dd if=/dev/tty bs=1 count=1 2>/dev/null
+                stty -cbreak echo
+            )
+            case $char in
+            "$(printenv '\000')")
+                break
+                ;;
+            "$(printf '\177')" | "$(printf '\b')")
+                if [ $charcount -gt 0 ]; then
+                    printf '\b \b'
+                    reply="${reply%?}"
+                    charcount=$((charcount - 1))
+                else
+                    printf ''
+                fi
+                ;;
+            "$(printf '\033')") ;;
+            *)
+                printf '*'
+                reply="${reply}${char}"
+                charcount=$((charcount + 1))
+                ;;
+            esac
+        done
+        printf '\n' >&2
+    else
+        read -s -p "$TXT_SET_PANEL_PASSWORD: $DEFAULT_PASSWORD):" reply
+        printf '\n' >&2
+    fi
 }
 
 function Set_Password(){
     DEFAULT_PASSWORD=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
 
     while true; do
-        log "$TXT_SET_PANEL_PASSWORD $DEFAULT_PASSWORD): "
         passwd
         PANEL_PASSWORD=$reply
         if [[ "$PANEL_PASSWORD" == "" ]];then
@@ -463,15 +511,7 @@ function Set_Password(){
     done
 }
 
-function Init_Panel(){
-    log "$TXT_CONFIGURE_PANEL_SERVICE"
-
-    RUN_BASE_DIR=$PANEL_BASE_DIR/1panel
-    mkdir -p "$RUN_BASE_DIR"
-    rm -rf "$RUN_BASE_DIR:?/*"
-
-    cd "${CURRENT_DIR}" || exit
-
+init_configure() {
     cp ./1panel-core /usr/local/bin && chmod +x /usr/local/bin/1panel-core
     if [[ -e /usr/bin/1panel ]]; then
         rm -f /usr/bin/1panel
@@ -512,41 +552,108 @@ function Init_Panel(){
     cp -r ./GeoIP.mmdb $RUN_BASE_DIR/geo/
 
     cp -r ./lang /usr/local/bin
-    cp ./1panel-core.service /etc/systemd/system
-    cp ./1panel-agent.service /etc/systemd/system
+}
+    
+install_and_configure() {
+    if command -v systemctl &>/dev/null; then
+        init_configure
+        cp ./initscript/1panel-core.service /etc/systemd/system
+        cp ./initscript/1panel-agent.service /etc/systemd/system
+        systemctl enable 1panel-agent.service; systemctl enable 1panel-core.service; systemctl daemon-reload 2>&1 | tee -a ${LOG_FILE}
+        log "$TXT_START_PANEL_SERVICE"
+        systemctl start 1panel-core | tee -a ${LOG_FILE}
+        systemctl start 1panel-agent | tee -a ${LOG_FILE}
+    else
+     	mkdir -p /usr/local/bin
+	    init_configure
+        if [ -f /etc/rc.common ]; then
+            cp ./initscript/1panel-core.procd /etc/init.d/1panel-core
+            cp ./initscript/1panel-agent.procd /etc/init.d/1panel-agent
+            chmod +x /etc/init.d/1panel-core
+            chmod +x /etc/init.d/1panel-agent
+            /etc/init.d/1panel-core enable | tee -a ${LOG_FILE}
+            /etc/init.d/1panel-agent enable | tee -a ${LOG_FILE}
+        elif [ -f /sbin/openrc-run ]; then
+            cp ./initscript/1panel-core.openrc /etc/init.d/1panel-core
+            cp ./initscript/1panel-agent.openrc /etc/init.d/1panel-agent
+            chmod +x /etc/init.d/1panel-core
+            chmod +x /etc/init.d/1panel-agent
+            rc-update add 1panel-core default 2>&1 | tee -a ${LOG_FILE}
+            rc-update add 1panel-agent default 2>&1 | tee -a ${LOG_FILE}
+        else
+            cp ./initscript/1panel-core.init /etc/init.d/1panel-core
+            cp ./initscript/1panel-agent.init /etc/init.d/1panel-agent
+            chmod +x /etc/init.d/1panel-core
+            chmod +x /etc/init.d/1panel-agent
+            /etc/init.d/1panel-core enable | tee -a ${LOG_FILE}
+            /etc/init.d/1panel-agent enable | tee -a ${LOG_FILE}
+        fi
+        /etc/init.d/1panel-core start | tee -a ${LOG_FILE}
+        /etc/init.d/1panel-agent start | tee -a ${LOG_FILE}
+    fi
+}
 
-    systemctl enable 1panel-agent.service; systemctl enable 1panel-core.service; systemctl daemon-reload 2>&1 | tee -a "${CURRENT_DIR}"/install.log
-    log "$TXT_START_PANEL_SERVICE"
-    systemctl start 1panel-core | tee -a "${CURRENT_DIR}"/install.log
-    systemctl start 1panel-agent | tee -a "${CURRENT_DIR}"/install.log
+function Init_Panel(){
+    log "$TXT_CONFIGURE_PANEL_SERVICE"
+    MAX_ATTEMPTS=5
+    RUN_BASE_DIR=$PANEL_BASE_DIR/1panel
+    mkdir -p "$RUN_BASE_DIR"
+    rm -rf $RUN_BASE_DIR/* 2>/dev/null
 
-    for i in {1..30}; do
-        sleep 3
+    cd "${CURRENT_DIR}" || exit
 
-        core_status=$(systemctl status 1panel-core 2>&1 | grep Active)
-        agent_status=$(systemctl status 1panel-agent 2>&1 | grep Active)
+    install_and_configure
 
-        if [[ "$core_status" == *running* && "$agent_status" == *running* ]]; then
-            log "$TXT_PANEL_SERVICE_START_SUCCESS"
-            break
+    for attempt in $(seq 1 $MAX_ATTEMPTS); do
+        if command -v systemctl >/dev/null 2>&1; then
+            core_status=$(systemctl status 1panel-core 2>&1 | grep Active)
+            agent_status=$(systemctl status 1panel-agent 2>&1 | grep Active)
+            if [[ "$core_status" == *running* && "$agent_status" == *running* ]]; then
+                log "$TXT_PANEL_SERVICE_START_SUCCESS"
+                break
+            fi
+        elif command -v opkg >/dev/null 2>&1; then
+            core_status=$(/etc/init.d/1panel-core status 2>&1)
+            agent_status=$(/etc/init.d/1panel-agent status 2>&1)
+            if [[ "$core_status" == *running* && "$agent_status" == *running* ]]; then
+                log "$TXT_PANEL_SERVICE_START_SUCCESS"
+                break
+            fi
+        else
+            core_status=$(service 1panel-core status >/dev/null 2>&1 && echo active || echo inactive)
+            agent_status=$(service 1panel-agent status >/dev/null 2>&1 && echo active || echo inactive)
+            if [[ "$core_status" == "active" && "$agent_status" == "active" ]]; then
+                log "$TXT_PANEL_SERVICE_START_SUCCESS"
+                break
+            fi
         fi
 
-        if [[ $i -eq 30 ]]; then
+        if [ $attempt -eq $MAX_ATTEMPTS ]; then
             log "$TXT_PANEL_SERVICE_START_ERROR"
             exit 1
+        else
+            log $TXT_SERVICE_RETRY_MSG $((MAX_ATTEMPTS - attempt))
+            sleep 2
         fi
     done
 }
 
 function Get_Ip(){
     active_interface=$(ip route get 8.8.8.8 | awk 'NR==1 {print $5}')
+    PUBLIC_IP=$(curl -s https://api64.ipify.org)
     if [[ -z $active_interface ]]; then
         LOCAL_IP="127.0.0.1"
+    elif [[ $active_interface =~ pppoe ]]; then
+        PUBLIC_IP=$(ip -4 addr show dev "$active_interface" |  grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}')
+        LOCAL_IP=$(ip -4 addr show | grep -E 'br-lan.*' | grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}')
     else
-        LOCAL_IP=$(ip -4 addr show dev "$active_interface" | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+        if which opkg &>/dev/null;then
+            LOCAL_IP=$(ip -4 addr show | grep -E 'br-lan.*' | grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}' | awk -F '/' '{print $1}')
+        else
+            LOCAL_IP=`ip -4 addr show dev "$active_interface" |  grep -oE 'inet[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}'`
+        fi
     fi
 
-    PUBLIC_IP=$(curl -s https://api64.ipify.org)
     if [[ -z "$PUBLIC_IP" ]]; then
         PUBLIC_IP="N/A"
     fi
@@ -573,7 +680,7 @@ function Check_Ready() {
     done
 
     if [[ "$USE_EXISTING" == false ]]; then
-        sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=\*\*\*\*\*\*\*\*\*\*#g" /usr/local/bin/1pctl
+        sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl
     fi
 }
 

@@ -18,6 +18,13 @@ else
     LANGUAGE=en
 fi
 
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "$TXT_RUN_AS_ROOT"
+        exit 1
+    fi
+}
+
 function usage() {
     echo "$PANEL_CONTROL_SCRIPT"
     echo
@@ -39,6 +46,51 @@ function usage() {
     echo "  restore                     $TXT_PANEL_SERVICE_RESTORE"
 }
 
+_service_manager() {
+    local service_name=$1
+    if command -v systemctl &>/dev/null; then
+        service_manager="systemctl"
+        service_target="${service_name}.service"
+    elif command -v rc-service &>/dev/null; then
+        service_manager="openrc"
+        service_target="${service_name}"
+    else
+        service_manager="sysvinit"
+        service_target="${service_name}"
+    fi
+}
+
+_service_cmd() {
+    local service_name=$1
+    local cmd=$2
+    local success_msg=$3
+    local error_msg=$4
+
+    _service_manager $service_name
+
+    case $service_manager in
+    systemctl)
+        if ! systemctl "$cmd" "$service_target" 2>/dev/null; then
+            echo "$error_msg" >&2
+            exit 1
+        fi
+        ;;
+    openrc)
+        if ! rc-service "$service_target" "$cmd" 2>/dev/null; then
+           echo "$error_msg" >&2
+           exit 1
+        fi
+        ;;
+    *)
+        if ! service "$service_target" "$cmd" 2>/dev/null; then
+           echo "$error_msg" >&2
+           exit 1
+        fi
+        ;;
+    esac
+    [[ -n "$success_msg" ]] && echo "$success_msg"
+}
+
 function require_core_or_agent() {
     echo -e "$TXT_PANEL_SERVICE_REQUIRE_CORE_OR_AGENT"
     exit 1
@@ -55,7 +107,7 @@ function status() {
     fi
     case "$target" in
         core|agent)
-            systemctl status 1panel-$target.service
+            _service_cmd 1panel-$target "status" "" ""
             ;;
         *)
             require_core_or_agent
@@ -68,10 +120,10 @@ function start() {
         require_core_agent_or_all
     fi
     if [ "$target" == "all" ]; then
-        systemctl start 1panel-core.service
-        systemctl start 1panel-agent.service
+        _service_cmd 1panel-core "start" "" ""
+        _service_cmd 1panel-agent "start" "" ""
     else
-        systemctl start 1panel-$target.service
+        _service_cmd 1panel-$target "start" "" ""
     fi
 }
 
@@ -80,10 +132,10 @@ function stop() {
         require_core_agent_or_all
     fi
     if [ "$target" == "all" ]; then
-        systemctl stop 1panel-core.service
-        systemctl stop 1panel-agent.service
+        _service_cmd 1panel-core "stop" "" ""
+        _service_cmd 1panel-agent "stop" "" ""
     else
-        systemctl stop 1panel-$target.service
+        _service_cmd 1panel-$target "stop" "" ""
     fi
 }
 
@@ -92,10 +144,10 @@ function restart() {
         require_core_agent_or_all
     fi
     if [ "$target" == "all" ]; then
-        systemctl restart 1panel-core.service
-        systemctl restart 1panel-agent.service
+        _service_cmd 1panel-core "restart" "" ""
+        _service_cmd 1panel-agent "restart" "" ""
     else
-        systemctl restart 1panel-$target.service
+        _service_cmd 1panel-$target "restart" "" ""
     fi
 }
 
@@ -105,32 +157,47 @@ function uninstall() {
         case $yn in
             [Yy] )
                 echo -e "$TXT_PANEL_SERVICE_UNINSTALL_START"
+                _service_manager
+                
+                case $service_manager in
+                    systemctl)
+                        systemctl stop 1panel-core.service
+                        systemctl stop 1panel-agent.service
+                        systemctl disable 1panel-core.service >/dev/null 2>&1
+                        systemctl disable 1panel-agent.service >/dev/null 2>&1
+                        rm -rf /etc/systemd/system/{1panel-core.service,1panel-agent.service}
+                        echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
+                        systemctl daemon-reload
+                        systemctl reset-failed
+                        ;;
+                    openrc)
+                        rc-service 1panel-core stop
+                        rc-service 1panel-agent stop
+                        rc-update del 1panel-core >/dev/null 2>&1
+                        rc-update del 1panel-agent >/dev/null 2>&1
+                        rm -rf /etc/init.d/{1panel-core,1panel-agent}
+                        ;;
+                    *)
+                        service 1panel-core stop
+                        service 1panel-agent stop
+                        rm -rf /etc/init.d/{1panel-core,1panel-agent}
+                        ;;
+                esac
 
-                systemctl stop 1panel-core.service
-                systemctl stop 1panel-agent.service
-                systemctl disable 1panel-core.service >/dev/null 2>&1
-                systemctl disable 1panel-agent.service >/dev/null 2>&1
+                rm -rf /usr/local/bin/{1pctl,1panel-core,1panel-agent,lang} \
+                        /usr/bin/{1pctl,1panel,1panel-core,1panel-agent} \
+                        /etc/1panel
 
                 while true; do
                     read -p "$TXT_PANEL_DATA_KEEP_PROMPT" keep_data
                     case $keep_data in
                         [Yy] )
                             echo "$TXT_PANEL_DATA_DELETE"
-                            echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
-                            rm -rf $BASE_DIR/1panel \
-                                   /usr/local/bin/{1pctl,1panel-core,1panel-agent,lang} \
-                                   /usr/bin/{1pctl,1panel,1panel-core,1panel-agent} \
-                                   /etc/1panel \
-                                   /etc/systemd/system/{1panel-core.service,1panel-agent.service}
+                            rm -rf $BASE_DIR/1panel
                             break
                             ;;
                         [Nn] )
                             echo "$TXT_PANEL_DATA_KEEP"
-                            echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE"
-                            rm -rf /usr/local/bin/{1pctl,1panel-core,1panel-agent,lang} \
-                                   /usr/bin/{1pctl,1panel,1panel-core,1panel-agent} \
-                                   /etc/1panel \
-                                   /etc/systemd/system/{1panel-core.service,1panel-agent.service}
                             break
                             ;;
                         * )
@@ -139,9 +206,6 @@ function uninstall() {
                     esac
                 done
 
-                echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE_CONFIG"
-                systemctl daemon-reload
-                systemctl reset-failed
                 echo -e "$TXT_PANEL_SERVICE_UNINSTALL_REMOVE_SUCCESS"
                 break
                 ;;
