@@ -681,6 +681,8 @@ function Check_Ready() {
 
     if [[ "$USE_EXISTING" == false ]]; then
         sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl
+        # fix: stat /etc/1panel/agent.sock: no such file or directory
+        /usr/local/bin/1pctl restart >/dev/null 2>&1
     fi
 }
 
@@ -704,6 +706,7 @@ function Show_Result(){
     log "$TXT_REMEMBER_YOUR_PASSWORD"
     log ""
     log "================================================================"
+    sed -i -e "s/${TXT_PANEL_PASSWORD}.*/${TXT_PANEL_PASSWORD} ${PASSWORD_MASK}/g" "${LOG_FILE}"
 }
 
 function main(){
