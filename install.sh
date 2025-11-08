@@ -636,6 +636,10 @@ function Init_Panel(){
             sleep 2
         fi
     done
+    if [[ ! -d "$RUN_BASE_DIR/resource" ]]; then
+        mkdir -p "$RUN_BASE_DIR/resource"
+    fi
+    cp -r ./initscript "$RUN_BASE_DIR/resource/"
 }
 
 function Get_Ip(){
