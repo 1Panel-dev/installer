@@ -92,7 +92,7 @@ function Check_Root() {
 }
 
 function Prepare_System(){
-    if which 1panel-core >/dev/null 2>&1; then
+    if which 1panel >/dev/null 2>&1; then
         log "$TXT_PANEL_ALREADY_INSTALLED"
         exit 1
     fi
