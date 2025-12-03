@@ -6,13 +6,20 @@ Wants=network-online.target
 [Service]
 ExecStart=/usr/bin/1panel-core
 ExecReload=/bin/kill -s HUP $MAINPID
+
 Restart=always
 RestartSec=5
+StartLimitIntervalSec=3600
+StartLimitBurst=5
+StartLimitAction=none
+
 LimitNOFILE=1048576
 LimitNPROC=1048576
 LimitCORE=1048576
 Delegate=yes
-KillMode=process
+
+KillMode=mixed
+TimeoutStopSec=90
 
 [Install]
 WantedBy=multi-user.target
