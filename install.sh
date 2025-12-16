@@ -147,30 +147,52 @@ EOF
 
 function configure_accelerator() {
     while true; do
-        read -p "$TXT_ACCELERATION_CONFIG_ADD" configure_accelerator
-        case "$configure_accelerator" in
+        read -p "$TXT_ACCELERATION_CONFIG_ADD" accelerator_confirm
+        case "$accelerator_confirm" in
             [yY])
                 if ping -c 1 mirror.ccs.tencentyun.com &>/dev/null; then
                     ACCELERATOR_URLS='    "https://mirror.ccs.tencentyun.com"'
                     log "$TXT_USING_TENCENT_MIRROR"
                 fi
 
+                docker_needs_restart=false
+
                 if [ -f "$DAEMON_JSON" ]; then
-                    log "$TXT_ACCELERATION_CONFIG_EXISTS ${BACKUP_FILE}."
-                    cp "$DAEMON_JSON" "$BACKUP_FILE"
-                    create_daemon_json
+                    log "$TXT_DAEMON_CONFIG_EXISTS"
+                    while true; do
+                        read -p "$TXT_DAEMON_CONFIG_CONFIRM" daemon_confirm
+                        case "$daemon_confirm" in
+                            [yY])
+                                cp "$DAEMON_JSON" "$BACKUP_FILE"
+                                create_daemon_json
+                                docker_needs_restart=true
+                                break
+                                ;;
+                            [nN])
+                                log "$TXT_ACCELERATION_CONFIG_NOT"
+                                break
+                                ;;
+                            *)
+                                log "$TXT_INVALID_YN_INPUT"
+                                ;;
+                        esac
+                    done
                 else
                     create_daemon_json
+                    docker_needs_restart=true
                 fi
 
-                log "$TXT_RESTARTING_DOCKER"
-                if command -v systemctl &>/dev/null; then
-                    systemctl daemon-reload && systemctl restart docker
-                else
-                    service dockerd restart
-                    sleep 1
+                if [ "$docker_needs_restart" = true ]; then
+                    log "$TXT_RESTARTING_DOCKER"
+                    if command -v systemctl &>/dev/null; then
+                        systemctl daemon-reload && systemctl restart docker
+                    else
+                        service dockerd restart
+                        sleep 1
+                    fi
+                    log "$TXT_DOCKER_RESTARTED"
                 fi
-                log "$TXT_DOCKER_RESTARTED"
+
                 break
                 ;;
             [nN])
@@ -689,10 +711,12 @@ function Check_Ready() {
         i=$((i + 1))
     done
 
+    if [ ! -e /etc/1panel/agent.sock ]; then
+        /usr/local/bin/1pctl restart >/dev/null 2>&1
+    fi
+
     if [[ "$USE_EXISTING" == false ]]; then
         sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${PASSWORD_MASK}#g" /usr/local/bin/1pctl
-        # fix: stat /etc/1panel/agent.sock: no such file or directory
-        /usr/local/bin/1pctl restart >/dev/null 2>&1
     fi
 }
 
