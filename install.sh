@@ -581,7 +581,7 @@ init_configure() {
 
     cp -r ./lang /usr/local/bin
 }
-    
+
 install_and_configure() {
     if command -v systemctl &>/dev/null; then
         init_configure
@@ -626,7 +626,9 @@ function Init_Panel(){
     MAX_ATTEMPTS=5
     RUN_BASE_DIR=$PANEL_BASE_DIR/1panel
     mkdir -p "$RUN_BASE_DIR"
-    rm -rf $RUN_BASE_DIR/* 2>/dev/null
+    if [[ "$USE_EXISTING" == false ]]; then
+        rm -rf $RUN_BASE_DIR/* 2>/dev/null
+    fi
 
     cd "${CURRENT_DIR}" || exit
 
