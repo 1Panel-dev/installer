@@ -12,6 +12,7 @@ CURRENT_DIR=$(
 )
 
 LANG_FILE=".selected_language"
+EDITION_FILE=".selected_edition"
 LANG_DIR="$CURRENT_DIR/lang"
 AVAILABLE_LANGS=("en" "zh" "fa" "pt-BR" "ru")
 
@@ -41,6 +42,12 @@ else
         selected_lang="en"
         echo "$selected_lang" > "$CURRENT_DIR/$LANG_FILE"
     fi
+fi
+
+if [ -f "$CURRENT_DIR/$EDITION_FILE" ]; then
+    selected_edition=$(cat "$CURRENT_DIR/$EDITION_FILE")
+else
+    selected_edition="intl"
 fi
 
 LANGFILE="$LANG_DIR/$selected_lang.sh"
@@ -562,6 +569,7 @@ init_configure() {
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
     sed -i -e "s#LANGUAGE=.*#LANGUAGE=${selected_lang}#g" /usr/local/bin/1pctl
+    sed -i -e "s#^PANEL_EDITION=.*#PANEL_EDITION=${selected_edition}#g" /usr/local/bin/1pctl
     if [[ "$USE_EXISTING" == true ]]; then
         if grep -q "^CHANGE_USER_INFO=" "/usr/local/bin/1pctl"; then
             sed -i 's/^CHANGE_USER_INFO=.*/CHANGE_USER_INFO=use_existing/' "/usr/local/bin/1pctl"

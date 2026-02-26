@@ -1,5 +1,8 @@
 #!/bin/bash
 
+PANEL_EDITION="intl"
+EDITION_FILE=".selected_edition"
+
 osCheck=$(uname -a)
 if [[ $osCheck =~ 'x86_64' ]]; then
     architecture="amd64"
@@ -46,6 +49,7 @@ if [[ -f ${PACKAGE_FILE_NAME} ]]; then
         rm -rf 1panel-${VERSION}-linux-${architecture}
         tar zxf ${PACKAGE_FILE_NAME}
         cd 1panel-${VERSION}-linux-${architecture}
+        echo "$PANEL_EDITION" > "$EDITION_FILE"
         /bin/bash install.sh
         exit 0
     else
@@ -70,5 +74,6 @@ if [[ $? != 0 ]]; then
     exit 1
 fi
 cd 1panel-${VERSION}-linux-${architecture}
+echo "$PANEL_EDITION" > "$EDITION_FILE"
 
 /bin/bash install.sh

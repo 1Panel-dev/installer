@@ -11,6 +11,7 @@ ORIGINAL_ENTRANCE=entrance
 ORIGINAL_USERNAME=username
 ORIGINAL_PASSWORD=password
 LANGUAGE=en
+PANEL_EDITION=intl
 
 if [ -f "/usr/local/bin/lang/$LANGUAGE.sh" ]; then
     source "/usr/local/bin/lang/$LANGUAGE.sh"
