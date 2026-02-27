@@ -30,8 +30,8 @@ else
     fi
 fi
 
-VERSION=$(curl -s https://resource.1panel.hk/${INSTALL_MODE}/latest)
-HASH_FILE_URL="https://resource.1panel.hk/${INSTALL_MODE}/${VERSION}/release/checksums.txt"
+VERSION=$(curl -s https://resource.1panel.pro/v2/${INSTALL_MODE}/latest)
+HASH_FILE_URL="https://resource.1panel.pro/v2/${INSTALL_MODE}/${VERSION}/release/checksums.txt"
 
 if [[ "x${VERSION}" == "x" ]]; then
     echo "Failed to fetch the latest version (mode: ${INSTALL_MODE}). Please try again later."
@@ -39,7 +39,7 @@ if [[ "x${VERSION}" == "x" ]]; then
 fi
 
 PACKAGE_FILE_NAME="1panel-${VERSION}-linux-${architecture}.tar.gz"
-PACKAGE_DOWNLOAD_URL="https://resource.1panel.hk/${INSTALL_MODE}/${VERSION}/release/${PACKAGE_FILE_NAME}"
+PACKAGE_DOWNLOAD_URL="https://resource.1panel.pro/v2/${INSTALL_MODE}/${VERSION}/release/${PACKAGE_FILE_NAME}"
 EXPECTED_HASH=$(curl -s "$HASH_FILE_URL" | grep "$PACKAGE_FILE_NAME" | awk '{print $1}')
 
 if [[ -f ${PACKAGE_FILE_NAME} ]]; then
