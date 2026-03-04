@@ -47,7 +47,7 @@ fi
 if [ -f "$CURRENT_DIR/$EDITION_FILE" ]; then
     selected_edition=$(cat "$CURRENT_DIR/$EDITION_FILE")
 else
-    selected_edition="intl"
+    selected_edition="cn"
 fi
 
 LANGFILE="$LANG_DIR/$selected_lang.sh"
