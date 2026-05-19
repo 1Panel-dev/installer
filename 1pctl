@@ -67,6 +67,7 @@ function usage() {
     echo -e "  ${GREEN}restart${NC} [core|agent|all]    ${YELLOW}$TXT_PANEL_SERVICE_RESTART${NC}"
     echo -e "  ${RED}uninstall${NC}                   ${YELLOW}$TXT_PANEL_SERVICE_UNINSTALL${NC}"
     echo -e "  ${GREEN}user-info${NC}                   ${YELLOW}$TXT_PANEL_SERVICE_USER_INFO${NC}"
+    echo -e "  ${GREEN}user-list${NC}                   ${YELLOW}$TXT_PANEL_SERVICE_USER_LIST${NC}"
     echo -e "  ${GREEN}listen-ip${NC}                   ${YELLOW}$TXT_PANEL_SERVICE_LISTEN_IP${NC}"
     echo -e "  ${GREEN}version${NC}                     ${YELLOW}$TXT_PANEL_SERVICE_VERSION${NC}"
     echo -e "  ${GREEN}update${NC}                      ${YELLOW}$TXT_PANEL_SERVICE_UPDATE${NC}"
@@ -273,6 +274,12 @@ function user-info() {
     generate_border_line 60 "-" "$BLUE"
 }
 
+function user-list() {
+    print_centered_title "$TXT_PANEL_SERVICE_USER_LIST" 60 "=" "$BLUE"
+    1panel -l $LANGUAGE user-list
+    generate_border_line 60 "-" "$BLUE"
+}
+
 function listen-ip() {
     print_centered_title "$TXT_PANEL_SERVICE_LISTEN_IP" 60 "=" "$BLUE"
     case "${target}" in
@@ -394,6 +401,9 @@ function main() {
             ;;
         user-info)
             user-info
+            ;;
+        user-list)
+            user-list
             ;;
         listen-ip)
             listen-ip
