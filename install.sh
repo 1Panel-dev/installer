@@ -501,10 +501,10 @@ function passwd() {
                 dd if=/dev/tty bs=1 count=1 2>/dev/null
                 stty -cbreak echo
             )
-            case $char in
-            "$(printenv '\000')")
+            if [ -z "$char" ]; then
                 break
-                ;;
+            fi
+            case $char in
             "$(printf '\177')" | "$(printf '\b')")
                 if [ $charcount -gt 0 ]; then
                     printf '\b \b'
