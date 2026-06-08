@@ -214,6 +214,70 @@ function configure_accelerator() {
     done
 }
 
+function Install_Iptables_Offline() {
+    command -v iptables >/dev/null 2>&1 && return
+
+    [ -f /etc/os-release ] || return
+    . /etc/os-release
+
+    [ "$ID" = "debian" ] || return
+
+    case "${VERSION_ID%%.*}" in
+        11|12|13)
+            DEBIAN_VERSION_ID="${VERSION_ID%%.*}"
+            ;;
+        *)
+            return
+            ;;
+    esac
+
+    DEB_DIR="${CURRENT_DIR}/iptables-deb/debian${DEBIAN_VERSION_ID}"
+
+    [ -d "$DEB_DIR" ] || return
+
+    log "$TXT_IPTABLES_INSTALL_OFFLINE Debian ${DEBIAN_VERSION_ID}"
+
+    dpkg -i "$DEB_DIR"/*.deb >/dev/null 2>&1 || true
+    apt-get -f install -y >/dev/null 2>&1 || true
+}
+
+function Install_Docker_Offline() {
+    local docker_dir="${CURRENT_DIR}/docker"
+
+    log "$TXT_DOCKER_INSTALL_OFFLINE"
+
+    if [[ ! -d "${docker_dir}/bin" || ! -f "${docker_dir}/service/docker.service" || ! -f "${docker_dir}/conf/daemon.json" ]]; then
+        log "$TXT_DOCKER_INSTALL_FAIL"
+        exit 1
+    fi
+
+    if ! command -v systemctl &>/dev/null; then
+        log "$TXT_DOCKER_INSTALL_FAIL"
+        exit 1
+    fi
+
+    Install_Iptables_Offline
+
+    chmod +x "${docker_dir}"/bin/*
+    cp "${docker_dir}"/bin/* /usr/bin/
+    cp "${docker_dir}"/service/docker.service /etc/systemd/system/
+    chmod 754 /etc/systemd/system/docker.service
+    mkdir -p /etc/docker/
+    cp "${docker_dir}"/conf/daemon.json /etc/docker/daemon.json
+
+    systemctl enable docker 2>&1 | tee -a ${LOG_FILE}
+    systemctl daemon-reload 2>&1 | tee -a ${LOG_FILE}
+    systemctl start docker 2>&1 | tee -a ${LOG_FILE}
+
+    docker version >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+        log "$TXT_DOCKER_INSTALL_FAIL"
+        exit 1
+    else
+        log "$TXT_DOCKER_INSTALL_SUCCESS"
+    fi
+}
+
 function Install_Docker(){
     if which docker >/dev/null 2>&1; then
         docker_version=$(docker --version | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
@@ -240,10 +304,15 @@ function Install_Docker(){
         install_docker_choice=${install_docker_choice:-y}
             case "$install_docker_choice" in
                 [yY])
+                    if [[ -d "${CURRENT_DIR}/docker" ]]; then
+                        Install_Docker_Offline
+                        break
+                    fi
+
                     log "$TXT_DOCKER_INSTALL_ONLINE"
 
                     if  command -v opkg &>/dev/null;then
-                        log $TXT_INSTALL_DOCKER_ONLINE
+                        log "$TXT_DOCKER_INSTALL_ONLINE"
                         opkg update
                         opkg install luci-i18n-dockerman-zh-cn
                         opkg install zoneinfo-asia
