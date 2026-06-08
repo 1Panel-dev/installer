@@ -23,6 +23,7 @@ TXT_DAEMON_CONFIG_CONFIRM="Do you want to replace the Docker configuration file?
 TXT_RESTARTING_DOCKER="Restarting Docker service..."
 TXT_DOCKER_RESTARTED="Docker service successfully restarted."
 TXT_INSTALL_DOCKER_CONFIRM="Docker is not installed. Do you want to install it? [y/n] (default: y): "
+TXT_USE_BUILTIN_DOCKER_CONFIRM="Built-in Docker package detected. Use it for offline installation? [y/n] (default: y, choose n to install the latest Docker online): "
 TXT_CANCEL_INSTALL_DOCKER="Docker installation canceled"
 TXT_INVALID_YN_INPUT="Invalid input. Please enter y or n"
 TXT_DOCKER_INSTALL_ONLINE="... Installing Docker online"

@@ -23,6 +23,7 @@ TXT_DAEMON_CONFIG_CONFIRM="aya mikhahid fayl-e pishfarz-e Docker ra jaygozin kon
 TXT_RESTARTING_DOCKER="dar hale ra andaziye mojaddade service docker..."
 TXT_DOCKER_RESTARTED="service docker ba movafaghiat ra andaziye mojaddad shod."
 TXT_INSTALL_DOCKER_CONFIRM="Docker nasb nashode ast. Aya mikhahid an ra nasb konid? [y/n] (pish farz: y): "
+TXT_USE_BUILTIN_DOCKER_CONFIRM="Baste Docker dakheli peyda shod. Aya mikhahid az an baraye nasb offline estefade konid? [y/n] (pish farz: y, ba n akharin noskhe Docker online nasb mishavad): "
 TXT_CANCEL_INSTALL_DOCKER="Nasb-e Docker laghv shode ast"
 TXT_INVALID_YN_INPUT="voroodi na motabar ast. lotfan y ya n ra vared konid"
 TXT_DOCKER_INSTALL_ONLINE="... nasbe docker online"

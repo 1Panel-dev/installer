@@ -23,6 +23,7 @@ TXT_DAEMON_CONFIG_CONFIRM="Вы хотите заменить файл конф�
 TXT_RESTARTING_DOCKER="Перезапуск службы Docker..."
 TXT_DOCKER_RESTARTED="Служба Docker успешно перезапущена."
 TXT_INSTALL_DOCKER_CONFIRM="Docker не установлен. Установить сейчас? [y/n] (по умолчанию: y): "
+TXT_USE_BUILTIN_DOCKER_CONFIRM="Обнаружен встроенный пакет Docker. Использовать его для оффлайн-установки? [y/n] (по умолчанию: y, выберите n для онлайн-установки последней версии Docker): "
 TXT_CANCEL_INSTALL_DOCKER="Установка Docker отменена"
 TXT_INVALID_YN_INPUT="Недопустимый ввод. Пожалуйста, введите y или n"
 TXT_DOCKER_INSTALL_ONLINE="... Установка Docker онлайн"

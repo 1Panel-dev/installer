@@ -305,8 +305,22 @@ function Install_Docker(){
             case "$install_docker_choice" in
                 [yY])
                     if [[ -d "${CURRENT_DIR}/docker" ]]; then
-                        Install_Docker_Offline
-                        break
+                        while true; do
+                            read -p "$TXT_USE_BUILTIN_DOCKER_CONFIRM" use_builtin_docker_choice
+                            use_builtin_docker_choice=${use_builtin_docker_choice:-y}
+                            case "$use_builtin_docker_choice" in
+                                [yY])
+                                    Install_Docker_Offline
+                                    break 2
+                                    ;;
+                                [nN])
+                                    break
+                                    ;;
+                                *)
+                                    log "$TXT_INVALID_YN_INPUT"
+                                    ;;
+                            esac
+                        done
                     fi
 
                     log "$TXT_DOCKER_INSTALL_ONLINE"
