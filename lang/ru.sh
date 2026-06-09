@@ -96,6 +96,7 @@ TXT_PANEL_SERVICE_UNINSTALL_REMOVE_SUCCESS="Удаление завершено!
 TXT_PANEL_DATA_KEEP_PROMPT="Удалить каталог данных 1Panel? [y/n]: "
 TXT_PANEL_DATA_KEEP="Сохранить каталог данных 1Panel"
 TXT_PANEL_DATA_DELETE="Удалить каталог данных 1Panel"
+TXT_PANEL_SERVICE_RESTORE_NODE_NOTICE="Внимание: эта операция откатывает только основной узел. Если дочерние узлы уже обновлены, сначала откатите дочерние узлы, затем продолжите. Продолжить? [y/n]: "
 TXT_PANEL_SERVICE_RESTORE_NOTICE="1Panel будет восстановлен до последней стабильной версии. Хотите продолжить? [y/n]: "
 TXT_PANEL_SERVICE_UNSUPPORTED_PARAMETER="Неподдерживаемые параметры, используйте help или --help для получения справки"
 TXT_PANEL_CONTROL_SCRIPT="Скрипт управления 1Panel"
