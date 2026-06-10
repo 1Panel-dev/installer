@@ -304,6 +304,19 @@ function restore() {
     print_centered_title "$TXT_PANEL_SERVICE_RESTORE" 60 "=" "$YELLOW"
     check_root
     while true; do
+        read -p "$TXT_PANEL_SERVICE_RESTORE_NODE_NOTICE" yn
+        case "$yn" in
+            [Yy])
+                ;;
+            [Nn])
+                exit 0
+                ;;
+            *)
+                echo -e "$TXT_INVALID_YN_INPUT"
+                continue
+                ;;
+        esac
+
         read -p "$TXT_PANEL_SERVICE_RESTORE_NOTICE" yn
         case "$yn" in
             [Yy])
