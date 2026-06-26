@@ -50,7 +50,7 @@ if [[ -f ${PACKAGE_FILE_NAME} ]]; then
         tar zxf ${PACKAGE_FILE_NAME}
         cd 1panel-${VERSION}-linux-${architecture}
         echo "$PANEL_EDITION" > "$EDITION_FILE"
-        /bin/bash install.sh
+        /bin/bash install.sh "$@"
         exit 0
     else
         echo "Local package checksum mismatch. Redownloading package."
@@ -76,4 +76,4 @@ fi
 cd 1panel-${VERSION}-linux-${architecture}
 echo "$PANEL_EDITION" > "$EDITION_FILE"
 
-/bin/bash install.sh
+/bin/bash install.sh "$@"
