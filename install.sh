@@ -16,39 +16,265 @@ EDITION_FILE=".selected_edition"
 LANG_DIR="$CURRENT_DIR/lang"
 AVAILABLE_LANGS=("en" "zh" "fa" "pt-BR" "ru")
 
-declare -A LANG_NAMES
-LANG_NAMES=( ["en"]="English" ["zh"]="Chinese  中文(简体)" ["fa"]="Persian" ["pt-BR"]="Português (Brasil)" ["ru"]="Русский" )
+function lang_name() {
+    case "$1" in
+        en)
+            echo "English"
+            ;;
+        zh)
+            echo "Chinese  中文(简体)"
+            ;;
+        fa)
+            echo "Persian"
+            ;;
+        pt-BR)
+            echo "Português (Brasil)"
+            ;;
+        ru)
+            echo "Русский"
+            ;;
+    esac
+}
 
-if [ -f "$CURRENT_DIR/$LANG_FILE" ]; then
-    selected_lang=$(cat "$CURRENT_DIR/$LANG_FILE")
-else
+NON_INTERACTIVE=false
+CONFIG_LANG="${PANEL_LANG:-}"
+CONFIG_INSTALL_DIR="${PANEL_INSTALL_DIR:-}"
+CONFIG_PORT="${PANEL_PORT:-}"
+CONFIG_ENTRANCE="${PANEL_ENTRANCE:-}"
+CONFIG_USERNAME="${PANEL_USERNAME:-}"
+CONFIG_PASSWORD="${PANEL_PASSWORD:-}"
+CONFIG_INSTALL_DOCKER="${PANEL_INSTALL_DOCKER:-}"
+CONFIG_DOCKER_MODE="${PANEL_DOCKER_MODE:-}"
+CONFIG_CONFIGURE_ACCELERATOR="${PANEL_CONFIGURE_ACCELERATOR:-}"
+CONFIG_REPLACE_DAEMON_JSON="${PANEL_REPLACE_DAEMON_JSON:-}"
+
+function usage() {
+    cat << EOF
+Usage: bash install.sh [options]
+
+Options:
+  --non-interactive, -y             Use defaults for prompts that are not configured.
+  --lang <lang>                     Set language: en, zh, fa, pt-BR, ru.
+  --install-dir <path>              Set installation directory.
+  --port <port>                     Set panel port.
+  --entrance <entrance>             Set panel secure entrance.
+  --username <username>             Set panel username.
+  --password <password>             Set panel password (prefer PANEL_PASSWORD).
+  --install-docker <y|n>            Choose whether to install Docker (non-interactive default: n).
+  --docker-mode <auto|builtin|online>
+                                    Choose built-in Docker when available or online Docker.
+  --configure-accelerator <y|n>     Choose whether to configure Docker registry mirrors (non-interactive default: n).
+  --replace-daemon-json <y|n>       Choose whether to replace existing Docker daemon.json (non-interactive default: n).
+  -h, --help                        Show this help.
+
+Environment variables:
+  PANEL_NON_INTERACTIVE          Use defaults for prompts that are not configured.
+  PANEL_LANG                     Set language: en, zh, fa, pt-BR, ru.
+  PANEL_INSTALL_DIR              Set installation directory.
+  PANEL_PORT                     Set panel port.
+  PANEL_ENTRANCE                 Set panel secure entrance.
+  PANEL_USERNAME                 Set panel username.
+  PANEL_PASSWORD                 Set panel password.
+  PANEL_INSTALL_DOCKER           Choose whether to install Docker (non-interactive default: n).
+  PANEL_DOCKER_MODE              Choose Docker install mode: auto, builtin, online.
+  PANEL_CONFIGURE_ACCELERATOR    Choose whether to configure Docker registry mirrors (non-interactive default: n).
+  PANEL_REPLACE_DAEMON_JSON      Choose whether to replace existing Docker daemon.json (non-interactive default: n).
+
+Docker install and registry mirror options default to n in non-interactive mode unless explicitly set.
+EOF
+}
+
+function is_true() {
+    case "$1" in
+        true|TRUE|True|1|y|Y|yes|YES|Yes)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+function require_arg() {
+    if [[ -z "$2" ]]; then
+        echo "Option $1 requires a value"
+        exit 1
+    fi
+}
+
+function parse_args() {
+    if is_true "${PANEL_NON_INTERACTIVE:-}"; then
+        NON_INTERACTIVE=true
+    fi
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --non-interactive|-y)
+                NON_INTERACTIVE=true
+                ;;
+            --lang)
+                require_arg "$1" "$2"
+                CONFIG_LANG="$2"
+                shift
+                ;;
+            --lang=*)
+                CONFIG_LANG="${1#*=}"
+                ;;
+            --install-dir)
+                require_arg "$1" "$2"
+                CONFIG_INSTALL_DIR="$2"
+                shift
+                ;;
+            --install-dir=*)
+                CONFIG_INSTALL_DIR="${1#*=}"
+                ;;
+            --port)
+                require_arg "$1" "$2"
+                CONFIG_PORT="$2"
+                shift
+                ;;
+            --port=*)
+                CONFIG_PORT="${1#*=}"
+                ;;
+            --entrance)
+                require_arg "$1" "$2"
+                CONFIG_ENTRANCE="$2"
+                shift
+                ;;
+            --entrance=*)
+                CONFIG_ENTRANCE="${1#*=}"
+                ;;
+            --username)
+                require_arg "$1" "$2"
+                CONFIG_USERNAME="$2"
+                shift
+                ;;
+            --username=*)
+                CONFIG_USERNAME="${1#*=}"
+                ;;
+            --password)
+                require_arg "$1" "$2"
+                CONFIG_PASSWORD="$2"
+                shift
+                ;;
+            --password=*)
+                CONFIG_PASSWORD="${1#*=}"
+                ;;
+            --install-docker)
+                require_arg "$1" "$2"
+                CONFIG_INSTALL_DOCKER="$2"
+                shift
+                ;;
+            --install-docker=*)
+                CONFIG_INSTALL_DOCKER="${1#*=}"
+                ;;
+            --docker-mode)
+                require_arg "$1" "$2"
+                CONFIG_DOCKER_MODE="$2"
+                shift
+                ;;
+            --docker-mode=*)
+                CONFIG_DOCKER_MODE="${1#*=}"
+                ;;
+            --configure-accelerator)
+                require_arg "$1" "$2"
+                CONFIG_CONFIGURE_ACCELERATOR="$2"
+                shift
+                ;;
+            --configure-accelerator=*)
+                CONFIG_CONFIGURE_ACCELERATOR="${1#*=}"
+                ;;
+            --replace-daemon-json)
+                require_arg "$1" "$2"
+                CONFIG_REPLACE_DAEMON_JSON="$2"
+                shift
+                ;;
+            --replace-daemon-json=*)
+                CONFIG_REPLACE_DAEMON_JSON="${1#*=}"
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                echo "Unsupported option: $1"
+                usage
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
+
+function is_supported_lang() {
+    local lang="$1"
+    local lang_code
+    for lang_code in "${AVAILABLE_LANGS[@]}"; do
+        if [[ "$lang_code" == "$lang" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+function init_language() {
+    if [[ -n "$CONFIG_LANG" ]]; then
+        if ! is_supported_lang "$CONFIG_LANG"; then
+            echo "Unsupported language: $CONFIG_LANG"
+            exit 1
+        fi
+        selected_lang="$CONFIG_LANG"
+        echo "$selected_lang" > "$CURRENT_DIR/$LANG_FILE"
+        return
+    fi
+
+    if [ -f "$CURRENT_DIR/$LANG_FILE" ]; then
+        selected_lang=$(cat "$CURRENT_DIR/$LANG_FILE")
+        if is_supported_lang "$selected_lang"; then
+            return
+        fi
+    fi
+
+    if [[ "$NON_INTERACTIVE" == true ]]; then
+        if [[ "$selected_edition" == "cn" ]]; then
+            selected_lang="zh"
+        else
+            selected_lang="en"
+        fi
+        echo "$selected_lang" > "$CURRENT_DIR/$LANG_FILE"
+        return
+    fi
+
     echo "en" > "$CURRENT_DIR/$LANG_FILE"
     source "$LANG_DIR/en.sh"
 
     echo "$TXT_LANG_PROMPT_MSG"
     for i in "${!AVAILABLE_LANGS[@]}"; do
         lang_code="${AVAILABLE_LANGS[i]}"
-        echo "$((i + 1)). ${LANG_NAMES[$lang_code]}"
+        echo "$((i + 1)). $(lang_name "$lang_code")"
     done
 
     read -p "$TXT_LANG_CHOICE_MSG" lang_choice
 
     if [[ $lang_choice -ge 1 && $lang_choice -le ${#AVAILABLE_LANGS[@]} ]]; then
         selected_lang=${AVAILABLE_LANGS[$((lang_choice - 1))]}
-        echo "$TXT_LANG_SELECTED_CONFIRM_MSG ${LANG_NAMES[$selected_lang]}"
+        echo "$TXT_LANG_SELECTED_CONFIRM_MSG $(lang_name "$selected_lang")"
         echo "$selected_lang" > "$CURRENT_DIR/$LANG_FILE"
     else
         echo "$TXT_LANG_INVALID_MSG"
         selected_lang="en"
         echo "$selected_lang" > "$CURRENT_DIR/$LANG_FILE"
     fi
-fi
+}
 
 if [ -f "$CURRENT_DIR/$EDITION_FILE" ]; then
     selected_edition=$(cat "$CURRENT_DIR/$EDITION_FILE")
 else
     selected_edition="cn"
 fi
+
+parse_args "$@"
+init_language
 
 LANGFILE="$LANG_DIR/$selected_lang.sh"
 if [ -f "$LANGFILE" ]; then
@@ -80,6 +306,113 @@ function log() {
             ;;
     esac
 }
+
+function normalize_yn() {
+    case "$1" in
+        y|Y|yes|YES|Yes|true|TRUE|True|1)
+            echo "y"
+            return 0
+            ;;
+        n|N|no|NO|No|false|FALSE|False|0)
+            echo "n"
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+ASK_YN_RESULT=""
+function ask_yn() {
+    local prompt="$1"
+    local interactive_default="$2"
+    local non_interactive_default="$3"
+    local provided_choice="$4"
+    local choice
+    local normalized
+
+    if [[ -n "$provided_choice" ]]; then
+        if ! normalized=$(normalize_yn "$provided_choice"); then
+            log "$TXT_INVALID_YN_INPUT"
+            exit 1
+        fi
+        ASK_YN_RESULT="$normalized"
+        return
+    fi
+
+    if [[ "$NON_INTERACTIVE" == true ]]; then
+        ASK_YN_RESULT="$non_interactive_default"
+        return
+    fi
+
+    while true; do
+        read -p "$prompt" choice
+        if [[ -z "$choice" && -n "$interactive_default" ]]; then
+            choice="$interactive_default"
+        fi
+        if normalized=$(normalize_yn "$choice"); then
+            ASK_YN_RESULT="$normalized"
+            return
+        fi
+        log "$TXT_INVALID_YN_INPUT"
+    done
+}
+
+function escape_sed_replacement() {
+    printf '%s' "$1" | sed 's/[\\&#]/\\&/g'
+}
+
+function validate_panel_dir() {
+    [[ "$1" == /* && "$1" != *$'\n'* ]]
+}
+
+function validate_panel_port() {
+    [[ "$1" =~ ^[1-9][0-9]{0,4}$ && "$1" -le 65535 ]]
+}
+
+function panel_port_occupied() {
+    local port="$1"
+    if command -v netstat >/dev/null 2>&1; then
+        netstat -tlun | grep -q ":$port " >/dev/null 2>&1
+    elif command -v ss >/dev/null 2>&1; then
+        ss -tlun | grep -q ":$port " >/dev/null 2>&1
+    elif command -v lsof >/dev/null 2>&1; then
+        lsof -i:"$port" >/dev/null 2>&1
+    else
+        return 1
+    fi
+}
+
+function validate_panel_entrance() {
+    [[ "$1" =~ ^[a-zA-Z0-9_]{3,30}$ ]]
+}
+
+function validate_panel_username() {
+    [[ "$1" =~ ^[a-zA-Z0-9_]{3,30}$ ]]
+}
+
+function validate_panel_password() {
+    [[ "$1" =~ ^[a-zA-Z0-9_!@#$%*,.?]{8,30}$ ]]
+}
+
+function normalize_docker_mode() {
+    case "$1" in
+        ""|auto|AUTO|Auto)
+            echo "auto"
+            ;;
+        builtin|BUILTIN|Builtin|offline|OFFLINE|Offline)
+            echo "builtin"
+            ;;
+        online|ONLINE|Online)
+            echo "online"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 cat << EOF
  ██╗    ██████╗  █████╗ ███╗   ██╗███████╗██╗     
 ███║    ██╔══██╗██╔══██╗████╗  ██║██╔════╝██║     
@@ -107,25 +440,40 @@ function Prepare_System(){
 
 USE_EXISTING=false
 function Set_Dir(){
-    if read -t 120 -p "$TXT_SET_INSTALL_DIR" PANEL_BASE_DIR; then
-        if [[ "$PANEL_BASE_DIR" != "" ]]; then
-            if [[ "$PANEL_BASE_DIR" != /* ]]; then
-                log "$TXT_PROVIDE_FULL_PATH"
-                Set_Dir
-                return
-            fi
+    if [[ -n "$CONFIG_INSTALL_DIR" ]]; then
+        PANEL_BASE_DIR="$CONFIG_INSTALL_DIR"
+        if ! validate_panel_dir "$PANEL_BASE_DIR"; then
+            log "$TXT_PROVIDE_FULL_PATH"
+            exit 1
+        fi
+        if [[ ! -d $PANEL_BASE_DIR ]]; then
+            mkdir -p "$PANEL_BASE_DIR"
+        fi
+        log "$TXT_SELECTED_INSTALL_PATH $PANEL_BASE_DIR"
+    elif [[ "$NON_INTERACTIVE" == true ]]; then
+        PANEL_BASE_DIR=/opt
+        log "$TXT_SELECTED_INSTALL_PATH $PANEL_BASE_DIR"
+    else
+        if read -t 120 -p "$TXT_SET_INSTALL_DIR" PANEL_BASE_DIR; then
+            if [[ "$PANEL_BASE_DIR" != "" ]]; then
+                if ! validate_panel_dir "$PANEL_BASE_DIR"; then
+                    log "$TXT_PROVIDE_FULL_PATH"
+                    Set_Dir
+                    return
+                fi
 
-            if [[ ! -d $PANEL_BASE_DIR ]]; then
-                mkdir -p "$PANEL_BASE_DIR"
+                if [[ ! -d $PANEL_BASE_DIR ]]; then
+                    mkdir -p "$PANEL_BASE_DIR"
+                    log "$TXT_SELECTED_INSTALL_PATH $PANEL_BASE_DIR"
+                fi
+            else
+                PANEL_BASE_DIR=/opt
                 log "$TXT_SELECTED_INSTALL_PATH $PANEL_BASE_DIR"
             fi
         else
             PANEL_BASE_DIR=/opt
-            log "$TXT_SELECTED_INSTALL_PATH $PANEL_BASE_DIR"
+            log "$TXT_TIMEOUT_USE_DEFAULT_PATH"
         fi
-    else
-        PANEL_BASE_DIR=/opt
-        log "$TXT_TIMEOUT_USE_DEFAULT_PATH"
     fi
 
     if [[ -f "$PANEL_BASE_DIR/1panel/db/core.db" ]]; then
@@ -153,9 +501,14 @@ EOF
 }
 
 function configure_accelerator() {
+    if [[ "$NON_INTERACTIVE" == true && -z "$CONFIG_CONFIGURE_ACCELERATOR" ]]; then
+        log "$TXT_ACCELERATION_CONFIG_NOT"
+        return
+    fi
+
     while true; do
-        read -p "$TXT_ACCELERATION_CONFIG_ADD" accelerator_confirm
-        accelerator_confirm=${accelerator_confirm:-y}
+        ask_yn "$TXT_ACCELERATION_CONFIG_ADD" "y" "n" "$CONFIG_CONFIGURE_ACCELERATOR"
+        accelerator_confirm="$ASK_YN_RESULT"
         case "$accelerator_confirm" in
             [yY])
                 if ping -c 1 mirror.ccs.tencentyun.com &>/dev/null; then
@@ -168,7 +521,8 @@ function configure_accelerator() {
                 if [ -f "$DAEMON_JSON" ]; then
                     log "$TXT_DAEMON_CONFIG_EXISTS"
                     while true; do
-                        read -p "$TXT_DAEMON_CONFIG_CONFIRM" daemon_confirm
+                        ask_yn "$TXT_DAEMON_CONFIG_CONFIRM" "" "n" "$CONFIG_REPLACE_DAEMON_JSON"
+                        daemon_confirm="$ASK_YN_RESULT"
                         case "$daemon_confirm" in
                             [yY])
                                 cp "$DAEMON_JSON" "$BACKUP_FILE"
@@ -289,38 +643,68 @@ function Install_Docker(){
         fi
         if [[ $($service_cmd 2>&1)  == *running* ]]; then
             log "$TXT_DOCKER_RESTARTED"
+            if [[ "$NON_INTERACTIVE" == true && -n "$CONFIG_CONFIGURE_ACCELERATOR" ]]; then
+                configure_accelerator
+            fi
         else
             if [[ $major_version -lt 20 ]]; then
                 log "$TXT_LOW_DOCKER_VERSION"
             fi
 
-            if [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
+            if [[ "$NON_INTERACTIVE" == true ]]; then
+                if [[ -n "$CONFIG_CONFIGURE_ACCELERATOR" ]]; then
+                    configure_accelerator
+                fi
+            elif [[ $(curl -s ipinfo.io/country) == "CN" ]]; then
                 configure_accelerator
             fi
         fi
     else
+        local docker_mode="auto"
+        local docker_mode_configured=false
+        if [[ -n "$CONFIG_DOCKER_MODE" ]]; then
+            docker_mode_configured=true
+        fi
+        if ! docker_mode=$(normalize_docker_mode "$CONFIG_DOCKER_MODE"); then
+            log "$TXT_INVALID_YN_INPUT"
+            exit 1
+        fi
         while true; do
-        read -p "$TXT_INSTALL_DOCKER_CONFIRM" install_docker_choice
-        install_docker_choice=${install_docker_choice:-y}
+            ask_yn "$TXT_INSTALL_DOCKER_CONFIRM" "y" "n" "$CONFIG_INSTALL_DOCKER"
+            install_docker_choice="$ASK_YN_RESULT"
             case "$install_docker_choice" in
                 [yY])
                     if [[ -d "${CURRENT_DIR}/docker" ]]; then
-                        while true; do
-                            read -p "$TXT_USE_BUILTIN_DOCKER_CONFIRM" use_builtin_docker_choice
-                            use_builtin_docker_choice=${use_builtin_docker_choice:-y}
-                            case "$use_builtin_docker_choice" in
-                                [yY])
+                        case "$docker_mode" in
+                            builtin)
+                                Install_Docker_Offline
+                                break
+                                ;;
+                            online)
+                                ;;
+                            auto)
+                                if [[ "$NON_INTERACTIVE" == true || "$docker_mode_configured" == true ]]; then
                                     Install_Docker_Offline
-                                    break 2
-                                    ;;
-                                [nN])
                                     break
-                                    ;;
-                                *)
-                                    log "$TXT_INVALID_YN_INPUT"
-                                    ;;
-                            esac
-                        done
+                                fi
+                                while true; do
+                                    ask_yn "$TXT_USE_BUILTIN_DOCKER_CONFIRM" "y" "y" ""
+                                    use_builtin_docker_choice="$ASK_YN_RESULT"
+                                    case "$use_builtin_docker_choice" in
+                                        [yY])
+                                            Install_Docker_Offline
+                                            break 2
+                                            ;;
+                                        [nN])
+                                            break
+                                            ;;
+                                    esac
+                                done
+                                ;;
+                        esac
+                    elif [[ "$docker_mode" == "builtin" ]]; then
+                        log "$TXT_DOCKER_INSTALL_FAIL"
+                        exit 1
                     fi
 
                     log "$TXT_DOCKER_INSTALL_ONLINE"
@@ -468,35 +852,44 @@ function Install_Docker(){
 }
 
 function Set_Port(){
+    local port_retry_count=0
     DEFAULT_PORT=$(expr $RANDOM % 55535 + 10000)
 
     while true; do
-        read -p "$TXT_SET_PANEL_PORT $DEFAULT_PORT): " PANEL_PORT
+        if [[ -n "$CONFIG_PORT" ]]; then
+            PANEL_PORT="$CONFIG_PORT"
+        elif [[ "$NON_INTERACTIVE" == true ]]; then
+            PANEL_PORT="$DEFAULT_PORT"
+        else
+            read -p "$TXT_SET_PANEL_PORT $DEFAULT_PORT): " PANEL_PORT
 
-        if [[ "$PANEL_PORT" == "" ]];then
-            PANEL_PORT=$DEFAULT_PORT
+            if [[ "$PANEL_PORT" == "" ]];then
+                PANEL_PORT=$DEFAULT_PORT
+            fi
         fi
 
-        if ! [[ "$PANEL_PORT" =~ ^[1-9][0-9]{0,4}$ && "$PANEL_PORT" -le 65535 ]]; then
+        if ! validate_panel_port "$PANEL_PORT"; then
             log "$TXT_INPUT_PORT_NUMBER"
+            if [[ -n "$CONFIG_PORT" || "$NON_INTERACTIVE" == true ]]; then
+                exit 1
+            fi
             continue
         fi
 
-        if command -v netstat >/dev/null 2>&1; then
-            if netstat -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-                log "$TXT_PORT_OCCUPIED $PANEL_PORT"
+        if panel_port_occupied "$PANEL_PORT"; then
+            log "$TXT_PORT_OCCUPIED $PANEL_PORT"
+            if [[ -n "$CONFIG_PORT" ]]; then
+                exit 1
+            fi
+            if [[ "$NON_INTERACTIVE" == true ]]; then
+                port_retry_count=$((port_retry_count + 1))
+                if [[ "$port_retry_count" -ge 10 ]]; then
+                    exit 1
+                fi
+                DEFAULT_PORT=$(expr $RANDOM % 55535 + 10000)
                 continue
             fi
-        elif command -v ss >/dev/null 2>&1; then
-            if ss -tlun | grep -q ":$PANEL_PORT " >/dev/null 2>&1; then
-                log "$TXT_PORT_OCCUPIED $PANEL_PORT"
-                continue
-            fi
-        elif command -v lsof >/dev/null 2>&1; then 
-	        if lsof -i:$PANEL_PORT >/dev/null 2>&1; then
-                log "$TXT_PORT_OCCUPIED $PANEL_PORT"
-                continue
-            fi
+            continue
         fi
 
         log "$TXT_THE_PORT_U_SET $PANEL_PORT"
@@ -538,18 +931,27 @@ function Set_Entrance(){
     DEFAULT_ENTRANCE=`cat /dev/urandom | head -n 16 | md5sum | head -c 10`
 
     while true; do
-	    read -p "$TXT_SET_PANEL_ENTRANCE $DEFAULT_ENTRANCE): " PANEL_ENTRANCE
-	    if [[ "$PANEL_ENTRANCE" == "" ]]; then
-    	    PANEL_ENTRANCE=$DEFAULT_ENTRANCE
-    	fi
+        if [[ -n "$CONFIG_ENTRANCE" ]]; then
+            PANEL_ENTRANCE="$CONFIG_ENTRANCE"
+        elif [[ "$NON_INTERACTIVE" == true ]]; then
+            PANEL_ENTRANCE="$DEFAULT_ENTRANCE"
+        else
+            read -p "$TXT_SET_PANEL_ENTRANCE $DEFAULT_ENTRANCE): " PANEL_ENTRANCE
+            if [[ "$PANEL_ENTRANCE" == "" ]]; then
+                PANEL_ENTRANCE=$DEFAULT_ENTRANCE
+            fi
+        fi
 
-    	if [[ ! "$PANEL_ENTRANCE" =~ ^[a-zA-Z0-9_]{3,30}$ ]]; then
+        if ! validate_panel_entrance "$PANEL_ENTRANCE"; then
             log "$TXT_INPUT_ENTRANCE_RULE"
+            if [[ -n "$CONFIG_ENTRANCE" || "$NON_INTERACTIVE" == true ]]; then
+                exit 1
+            fi
             continue
-    	fi
+        fi
     
         log "$TXT_YOUR_PANEL_ENTRANCE $PANEL_ENTRANCE"
-    	break
+        break
     done
 }
 
@@ -557,14 +959,23 @@ function Set_Username(){
     DEFAULT_USERNAME=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
 
     while true; do
-        read -p "$TXT_SET_PANEL_USER $DEFAULT_USERNAME): " PANEL_USERNAME
+        if [[ -n "$CONFIG_USERNAME" ]]; then
+            PANEL_USERNAME="$CONFIG_USERNAME"
+        elif [[ "$NON_INTERACTIVE" == true ]]; then
+            PANEL_USERNAME="$DEFAULT_USERNAME"
+        else
+            read -p "$TXT_SET_PANEL_USER $DEFAULT_USERNAME): " PANEL_USERNAME
 
-        if [[ "$PANEL_USERNAME" == "" ]];then
-            PANEL_USERNAME=$DEFAULT_USERNAME
+            if [[ "$PANEL_USERNAME" == "" ]];then
+                PANEL_USERNAME=$DEFAULT_USERNAME
+            fi
         fi
 
-        if [[ ! "$PANEL_USERNAME" =~ ^[a-zA-Z0-9_]{3,30}$ ]]; then
+        if ! validate_panel_username "$PANEL_USERNAME"; then
             log "$TXT_INPUT_USERNAME_RULE"
+            if [[ -n "$CONFIG_USERNAME" || "$NON_INTERACTIVE" == true ]]; then
+                exit 1
+            fi
             continue
         fi
 
@@ -616,14 +1027,23 @@ function Set_Password(){
     DEFAULT_PASSWORD=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
 
     while true; do
-        passwd
-        PANEL_PASSWORD=$reply
-        if [[ "$PANEL_PASSWORD" == "" ]];then
-            PANEL_PASSWORD=$DEFAULT_PASSWORD
+        if [[ -n "$CONFIG_PASSWORD" ]]; then
+            PANEL_PASSWORD="$CONFIG_PASSWORD"
+        elif [[ "$NON_INTERACTIVE" == true ]]; then
+            PANEL_PASSWORD="$DEFAULT_PASSWORD"
+        else
+            passwd
+            PANEL_PASSWORD=$reply
+            if [[ "$PANEL_PASSWORD" == "" ]];then
+                PANEL_PASSWORD=$DEFAULT_PASSWORD
+            fi
         fi
 
-        if [[ ! "$PANEL_PASSWORD" =~ ^[a-zA-Z0-9_!@#$%*,.?]{8,30}$ ]]; then
+        if ! validate_panel_password "$PANEL_PASSWORD"; then
             log "$TXT_INPUT_PASSWORD_RULE"
+            if [[ -n "$CONFIG_PASSWORD" || "$NON_INTERACTIVE" == true ]]; then
+                exit 1
+            fi
             continue
         fi
 
@@ -647,14 +1067,20 @@ init_configure() {
     fi
 
     cp ./1pctl /usr/local/bin && chmod +x /usr/local/bin/1pctl
-    sed -i -e "s#BASE_DIR=.*#BASE_DIR=${PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
-    sed -i -e "s#ORIGINAL_PORT=.*#ORIGINAL_PORT=${PANEL_PORT}#g" /usr/local/bin/1pctl
-    sed -i -e "s#ORIGINAL_USERNAME=.*#ORIGINAL_USERNAME=${PANEL_USERNAME}#g" /usr/local/bin/1pctl
-    ESCAPED_PANEL_PASSWORD=$(echo "$PANEL_PASSWORD" | sed 's/[!@#$%*_,.?]/\\&/g')
+    ESCAPED_PANEL_BASE_DIR=$(escape_sed_replacement "$PANEL_BASE_DIR")
+    ESCAPED_PANEL_PORT=$(escape_sed_replacement "$PANEL_PORT")
+    ESCAPED_PANEL_USERNAME=$(escape_sed_replacement "$PANEL_USERNAME")
+    ESCAPED_PANEL_PASSWORD=$(escape_sed_replacement "$PANEL_PASSWORD")
+    ESCAPED_PANEL_ENTRANCE=$(escape_sed_replacement "$PANEL_ENTRANCE")
+    ESCAPED_SELECTED_LANG=$(escape_sed_replacement "$selected_lang")
+    ESCAPED_SELECTED_EDITION=$(escape_sed_replacement "$selected_edition")
+    sed -i -e "s#BASE_DIR=.*#BASE_DIR=${ESCAPED_PANEL_BASE_DIR}#g" /usr/local/bin/1pctl
+    sed -i -e "s#ORIGINAL_PORT=.*#ORIGINAL_PORT=${ESCAPED_PANEL_PORT}#g" /usr/local/bin/1pctl
+    sed -i -e "s#ORIGINAL_USERNAME=.*#ORIGINAL_USERNAME=${ESCAPED_PANEL_USERNAME}#g" /usr/local/bin/1pctl
     sed -i -e "s#ORIGINAL_PASSWORD=.*#ORIGINAL_PASSWORD=${ESCAPED_PANEL_PASSWORD}#g" /usr/local/bin/1pctl
-    sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
-    sed -i -e "s#LANGUAGE=.*#LANGUAGE=${selected_lang}#g" /usr/local/bin/1pctl
-    sed -i -e "s#^PANEL_EDITION=.*#PANEL_EDITION=${selected_edition}#g" /usr/local/bin/1pctl
+    sed -i -e "s#ORIGINAL_ENTRANCE=.*#ORIGINAL_ENTRANCE=${ESCAPED_PANEL_ENTRANCE}#g" /usr/local/bin/1pctl
+    sed -i -e "s#LANGUAGE=.*#LANGUAGE=${ESCAPED_SELECTED_LANG}#g" /usr/local/bin/1pctl
+    sed -i -e "s#^PANEL_EDITION=.*#PANEL_EDITION=${ESCAPED_SELECTED_EDITION}#g" /usr/local/bin/1pctl
     if [[ "$USE_EXISTING" == true ]]; then
         if grep -q "^CHANGE_USER_INFO=" "/usr/local/bin/1pctl"; then
             sed -i 's/^CHANGE_USER_INFO=.*/CHANGE_USER_INFO=use_existing/' "/usr/local/bin/1pctl"
