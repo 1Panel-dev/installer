@@ -482,7 +482,7 @@ function Set_Dir(){
 }
 
 ACCELERATOR_URLS='    "https://docker.1panel.live",
-    "https://docker.1panel.dev",
+    "https://hub.1panel.dev",
     "https://docker.1ms.run"'
 DAEMON_JSON="/etc/docker/daemon.json"
 BACKUP_FILE="/etc/docker/daemon.json.1panel_bak"
