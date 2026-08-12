@@ -851,6 +851,22 @@ function Install_Docker(){
     fi
 }
 
+function Install_AppStore() {
+    local appstore_file="${CURRENT_DIR}/appstore.tar.gz"
+
+    if [[ ! -f "$appstore_file" ]]; then
+        return
+    fi
+
+    log "$TXT_APPSTORE_OFFLINE_INSTALL"
+    mkdir -p "$RUN_BASE_DIR/resource/offline"
+    if cp "$appstore_file" "$RUN_BASE_DIR/resource/offline/"; then
+        log "$TXT_APPSTORE_OFFLINE_SUCCESS"
+    else
+        log "$TXT_APPSTORE_OFFLINE_FAIL"
+    fi
+}
+
 function Set_Port(){
     local port_retry_count=0
     DEFAULT_PORT=$(expr $RANDOM % 55535 + 10000)
@@ -1275,6 +1291,7 @@ function main(){
     Set_Username
     Set_Password
     Init_Panel
+    Install_AppStore
     Get_Ip
     Check_Ready
     Show_Result
